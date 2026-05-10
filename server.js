@@ -9,11 +9,22 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware - Increased limit for base64 images
+// ===============================
+// Middleware
+// ===============================
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Load multiple API keys
+// ===============================
+// Homepage Route (IMPORTANT)
+// ===============================
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ===============================
+// Load Multiple API Keys
+// ===============================
 const apiKeys = [
   process.env.GEMINI_API_KEY_1,
   process.env.GEMINI_API_KEY_2,
@@ -24,64 +35,94 @@ console.log(`Loaded ${apiKeys.length} API keys.`);
 
 let currentKeyIndex = 0;
 
-function getGenAI() {
-  return new GoogleGenerativeAI(apiKeys[currentKeyIndex]);
-}
-
 function rotateKey() {
   currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
   console.log(`Switched to API Key index: ${currentKeyIndex}`);
 }
 
-const SYSTEM_PROMPT = `You are a premium, Google-level AI Financial Assistant for Pakistani users.
+// ===============================
+// AI System Prompt
+// ===============================
+const SYSTEM_PROMPT = `
+You are a premium, Google-level AI Financial Assistant for Pakistani users.
 
-BEHAVIOR RULES:
-1. LANGUAGES: Mix of Simple English + Urdu (Hinglish).
-2. REDIRECTION: If asked unrelated questions (jokes, entertainment), politely redirect.
-3. SCAM ANALYSIS: ONLY show "⚠️ Scam Risk Score: X%" if the user shares a suspicious message, link, SMS, or screenshot. For greetings (Hi, Salam) or general financial advice, do NOT show the risk score.
-4. TONE: Professional, smart, and ultra-concise (Max 8-12 lines).`;
+RULES:
+1. Use Simple English + Urdu (Hinglish).
+2. Be concise, smart, and professional.
+3. Only show Scam Risk Score when user shares suspicious content.
+4. Redirect unrelated entertainment questions politely.
+5. Focus on:
+   - Scam Detection
+   - Financial Safety
+   - Budget Planning
+   - Pakistani Financial Guidance
+6. Maximum response length: 8-12 lines.
+`;
 
-// Initialize chat history
+// ===============================
+// Chat History
+// ===============================
 let chatHistory = [];
 
+// ===============================
 // Chat Endpoint
+// ===============================
 app.post('/chat', async (req, res) => {
   const { message, image } = req.body;
 
   if (!message && !image) {
-    return res.status(400).json({ error: 'Message or Image is required' });
+    return res.status(400).json({
+      error: 'Message or image is required.'
+    });
   }
 
+  // Clear History Command
   if (message && message.toLowerCase() === '___clear_history___') {
     chatHistory = [];
-    return res.json({ reply: "History cleared." });
+    return res.json({
+      reply: 'Chat history cleared successfully.'
+    });
   }
 
-  console.log(`--- New Request: ${message ? message.substring(0, 20) : "Image Only"} ---`);
+  console.log(`--- New Request Received ---`);
 
-  // Try available keys one by one
+  // Try all API keys one-by-one
   for (let attempts = 0; attempts < apiKeys.length; attempts++) {
+
     const currentKey = apiKeys[currentKeyIndex];
-    console.log(`Attempt ${attempts + 1}: Using Key #${currentKeyIndex + 1}`);
+
+    console.log(`Using API Key #${currentKeyIndex + 1}`);
 
     try {
-      const tempGenAI = new GoogleGenerativeAI(currentKey);
-      const tempModel = tempGenAI.getGenerativeModel({ 
-        model: "gemini-flash-latest",
+
+      const genAI = new GoogleGenerativeAI(currentKey);
+
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash',
         systemInstruction: SYSTEM_PROMPT
       });
 
-      const chat = tempModel.startChat({
+      const chat = model.startChat({
         history: chatHistory,
-        generationConfig: { maxOutputTokens: 2048 },
+        generationConfig: {
+          maxOutputTokens: 2048,
+          temperature: 0.7
+        }
       });
 
       let result;
+
+      // ===============================
+      // IMAGE + TEXT SUPPORT
+      // ===============================
       if (image) {
-        // Extract base64 and mime type
+
         const matches = image.match(/^data:(.+);base64,(.+)$/);
-        if (!matches) throw new Error("Invalid image format");
-        
+
+        if (!matches) {
+          throw new Error('Invalid image format.');
+        }
+
         const mimeType = matches[1];
         const base64Data = matches[2];
 
@@ -92,43 +133,86 @@ app.post('/chat', async (req, res) => {
               mimeType: mimeType
             }
           },
-          message || "Analyze this screenshot for scams."
+          message || 'Analyze this screenshot for scams.'
         ]);
+
       } else {
+
         result = await chat.sendMessage(message);
+
       }
 
       const response = await result.response;
       const text = response.text();
 
-      // If successful, save text history
-      chatHistory.push({ role: "user", parts: [{ text: message || "[Sent an Image]" }] });
-      chatHistory.push({ role: "model", parts: [{ text: text }] });
-      if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+      // ===============================
+      // Save Chat History
+      // ===============================
+      chatHistory.push({
+        role: 'user',
+        parts: [{ text: message || '[Image Uploaded]' }]
+      });
 
-      console.log(`Attempt ${attempts + 1} SUCCESS!`);
-      return res.json({ reply: text });
+      chatHistory.push({
+        role: 'model',
+        parts: [{ text }]
+      });
 
-    } catch (error) {
-      console.error(`Attempt ${attempts + 1} FAILED:`, error.message);
-
-      if (error.response && error.response.promptFeedback && error.response.promptFeedback.blockReason) {
-        return res.json({ reply: "Maaf kijiyega, yeh paighamaat hamare safety filters ki wajah se block hogaya hai." });
+      // Keep history limited
+      if (chatHistory.length > 20) {
+        chatHistory = chatHistory.slice(-20);
       }
 
+      console.log('Response generated successfully.');
+
+      return res.json({
+        reply: text
+      });
+
+    } catch (error) {
+
+      console.error(`API Key Failed: ${error.message}`);
+
+      // Safety Filter Handling
+      if (
+        error.response &&
+        error.response.promptFeedback &&
+        error.response.promptFeedback.blockReason
+      ) {
+        return res.json({
+          reply:
+            'Maaf kijiyega, yeh request hamare safety filters ki wajah se block ho gayi hai.'
+        });
+      }
+
+      // Rotate API Key
       rotateKey();
     }
   }
 
-  res.status(500).json({ error: 'Nakam hogaye! Hamare saare servers masroof hain. Thori dair baad koshish karein.' });
+  // ===============================
+  // All Keys Failed
+  // ===============================
+  return res.status(500).json({
+    error:
+      'Nakam hogaye! Saare AI servers busy hain. Thori dair baad dobara koshish karein.'
+  });
 });
 
+// ===============================
 // Start Server
+// ===============================
 app.listen(port, async () => {
-  console.log(`Server running at http://localhost:${port}`);
-  try {
-    await open(`http://localhost:${port}`);
-  } catch (err) {
-    console.error('Failed to open browser automatically:', err);
+
+  console.log(`Server running on port ${port}`);
+
+  // Open browser locally only
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      await open(`http://localhost:${port}`);
+    } catch (err) {
+      console.error('Failed to open browser automatically:', err);
+    }
   }
+
 });
