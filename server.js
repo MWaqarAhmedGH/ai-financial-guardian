@@ -13,13 +13,16 @@ const port = process.env.PORT || 3000;
 // Middleware
 // ===============================
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static files from the 'public' directory with absolute path
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
 
 // ===============================
-// Homepage Route (IMPORTANT)
+// Homepage Route
 // ===============================
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 // ===============================
