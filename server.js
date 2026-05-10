@@ -113,7 +113,9 @@ app.post('/chat', async (req, res) => {
     }
   }
 
-  return res.status(500).json({ error: 'Nakam hogaye! Saare servers masroof hain.' });
+  return res.status(500).json({ 
+    error: `Nakam hogaye! AI connection fail ho gayi hai. (Keys: ${apiKeys.length}). Baraye meherbani /api-status check karein ya thori dair baad koshish karein.` 
+  });
 });
 
 // For local testing
