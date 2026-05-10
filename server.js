@@ -25,6 +25,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+// Diagnostic route for Vercel
+app.get('/api-status', (req, res) => {
+  res.json({
+    keys_found: apiKeys.length,
+    node_env: process.env.NODE_ENV || 'development'
+  });
+});
+
 // ===============================
 // Load Multiple API Keys
 // ===============================
