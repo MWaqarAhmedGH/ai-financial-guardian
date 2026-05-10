@@ -202,17 +202,17 @@ app.post('/chat', async (req, res) => {
 // ===============================
 // Start Server
 // ===============================
-app.listen(port, async () => {
-
-  console.log(`Server running on port ${port}`);
-
-  // Open browser locally only
-  if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, async () => {
+    console.log(`Server running at http://localhost:${port}`);
+    // Automatically open the browser locally
     try {
       await open(`http://localhost:${port}`);
     } catch (err) {
       console.error('Failed to open browser automatically:', err);
     }
-  }
+  });
+}
 
-});
+// Export for Vercel
+module.exports = app;
