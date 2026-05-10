@@ -89,4 +89,4 @@ This project is designed to be **Demo-Ready**:
 - **Visual Depth:** 3D hover effects and smooth transitions.
 - **Social Impact:** Addresses a real-world problem in Pakistan.
 
-Developed with ❤️ by **[Your Name]**
+Developed with ❤️ by **[M WAQAR AHMED]**
