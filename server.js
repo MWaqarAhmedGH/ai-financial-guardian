@@ -109,7 +109,7 @@ app.post('/chat', async (req, res) => {
       const genAI = new GoogleGenerativeAI(currentKey);
 
       const model = genAI.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-flash-latest',
         systemInstruction: SYSTEM_PROMPT
       });
 
@@ -223,6 +223,10 @@ if (process.env.NODE_ENV !== 'production') {
       console.error('Failed to open browser automatically:', err);
     }
   });
+}
+
+// Export for Vercel
+module.exports = app;;
 }
 
 // Export for Vercel
