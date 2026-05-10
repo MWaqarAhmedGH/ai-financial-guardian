@@ -29,12 +29,11 @@ Pakistan faces a massive surge in financial fraud via SMS, WhatsApp, and fake ca
 
 ---
 
-## 📸 Screenshots (Coming Soon)
-*[Note to User: Please upload your screenshots to your repo and update these links]*
-1. **Homepage:** `![Homepage](./screenshots/home.png)`
-2. **Scam Detection:** `![Scam Check](./screenshots/scam.png)`
-3. **Screenshot Analysis:** `![Vision Scan](./screenshots/vision.png)`
-4. **Budget Planner:** `![Budget Planner](./screenshots/budget.png)`
+## 📸 Screenshots
+1. **Homepage:** ![Homepage](./Screenshots/Homepage.JPG)
+2. **Scam Detection:** ![Scam Check](./Screenshots/Scam%20Detection.JPG)
+3. **Screenshot Analysis:** ![Vision Scan](./Screenshots/Screenshot%20Analysis.JPG)
+4. **Budget Planner:** ![Budget Planner](./Screenshots/Budget%20Planner.JPG)
 
 ---
 
