@@ -41,9 +41,18 @@ toggleTraceBtn.onclick = () => {
 closeTraceBtn.onclick = () => traceContainer.style.display = 'none';
 
 function renderTrace() {
-    traceLogs.innerHTML = currentAgentTrace.map(step => `
-        <div class="trace-step">${step}</div>
-    `).join('');
+    if (currentAgentTrace.length === 0) {
+        traceLogs.innerHTML = `
+            <div class="trace-placeholder">
+                <p>Abhi tak koi data nahi hai. Mujhse koi sawal poochein ya scam message bhejein taake aap mera "Thinking Process" dekh sakein.</p>
+                <div class="trace-hint">Tip: Scam SMS check karne par yahan detailed logic nazar aayegi.</div>
+            </div>
+        `;
+    } else {
+        traceLogs.innerHTML = currentAgentTrace.map(step => `
+            <div class="trace-step">${step}</div>
+        `).join('');
+    }
 }
 
 // Load History on Startup
