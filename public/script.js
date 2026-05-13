@@ -236,6 +236,17 @@ async function sendMessage(text = null, imageData = null) {
     chatWindow.appendChild(loadingDiv);
     chatWindow.scrollTop = chatWindow.scrollHeight;
 
+    // Real-time Agent Trace Simulation
+    currentAgentTrace = [
+        "Step 1: Ingesting unstructured data...",
+        "Step 2: Identifying Pakistani fraud patterns...",
+        "Step 3: Calculating Risk Score (0-100)...",
+        "Step 4: Mapping autonomous defense plan..."
+    ];
+    renderTrace();
+    toggleTraceBtn.innerHTML = "🔍 AI is Thinking...";
+    toggleTraceBtn.classList.add('pulse');
+
     try {
         const response = await fetch('/chat', {
             method: 'POST',
@@ -247,13 +258,11 @@ async function sendMessage(text = null, imageData = null) {
         chatWindow.removeChild(loadingDiv);
         
         if (data.display_text) {
-            currentAgentTrace = data.agent_trace || [];
+            currentAgentTrace = data.agent_trace || currentAgentTrace;
             appendMessage(data.display_text, 'ai', false, isVoiceMode, true, data);
             
-            // Auto-open trace once to show logic if it's a first time
-            if (currentAgentTrace.length > 0) {
-                toggleTraceBtn.classList.add('pulse');
-            }
+            // Render actual trace
+            renderTrace();
         } else if (data.error) {
             appendMessage(data.error, 'ai');
         }
@@ -262,6 +271,7 @@ async function sendMessage(text = null, imageData = null) {
         appendMessage('AI connection error. Check your API keys.', 'ai');
     } finally {
         isVoiceMode = false;
+        toggleTraceBtn.innerHTML = "Show Agent Thinking";
     }
 }
 

@@ -55,14 +55,14 @@ JSON Structure:
     "Step 3: Calculating Risk Score (0-100)...",
     "Step 4: Mapping autonomous defense plan..."
   ],
-  "fia_complaint_draft": "Detailed FIA Cybercrime complaint draft. MUST be provided if scam_score > 30."
+  "fia_complaint_draft": "Detailed FIA Cybercrime complaint draft. MUST be provided if the input is related to a scam, fraud, or suspicious lottery."
 }
 
 Guidelines:
 - Language: Simple English + Urdu mix (Hinglish).
 - Scam Score: Always start with "⚠️ Scam Risk Score: X%".
 - Tone: Professional and protective.
-- Proactiveness: If you detect even a slight risk (scam_score > 30), you MUST provide a full fia_complaint_draft.
+- PROACTIVE DEFENSE: If the user asks about JazzCash lotteries, WhatsApp prizes, or any suspicious message, you MUST categorize it as a scam (scam_score > 60) and include "fia_report" in recommended_actions.
 - If it's a budget query, focus on the 50/30/20 rule and set scam_score to 0.
 `;
 
