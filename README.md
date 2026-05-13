@@ -8,33 +8,34 @@
 ## 🏆 Challenge 1: Autonomous Content-to-Action Agent
 This system is purpose-built to transform unstructured financial data (scam SMS, bank screenshots, news) into **immediate, simulated actions**. It doesn't just summarize; it protects.
 
-### 🧠 Agentic Workflow & Antigravity
-Using **Google Antigravity** orchestration, our agent follows a structured reasoning pipeline:
-1.  **Ingestion:** Processes unstructured text and images.
-2.  **Insight Extraction:** Identifies specific fraud patterns (e.g., Advance Fee Fraud).
-3.  **Impact Analysis:** Evaluates the financial risk to the user.
-4.  **Action Formulation:** Autonomously generates a multi-step defense plan.
-5.  **Execution Simulation:** Simulates critical actions like legal reporting and bank protection.
+## 🧠 Architecture & Agentic Workflow (Google Antigravity)
+Our system is powered by a custom-built **Agentic Orchestration Layer** that mimics the Google Antigravity reasoning engine. The workflow follows a strict traceable pipeline:
 
-*Users can view the full reasoning process via the **"Agent Trace"** feature in the UI.*
+1.  **Ingestion (Multimodal):** Ingests raw text or base64 image data (JazzCash/EasyPaisa/Bank screenshots).
+2.  **Autonomous Reasoning (Antigravity Logic):**
+    *   **Pattern Identification:** Scans for local Pakistani fraud signatures (e.g., BISP, Lottery, Fake FBR links).
+    *   **Risk Evaluation:** Assigns a `scam_score` based on threat severity.
+    *   **Action Planning:** Determines the best defensive measures (Legal, Financial, or Social).
+3.  **Actionable JSON Output:** Instead of conversational text, the agent outputs a structured JSON object containing display content and **executable action chips**.
+4.  **Traceability:** Every decision is logged in the **Agent Trace** window, providing full transparency into the AI's "thinking" process.
 
 ---
 
-## 🚀 Action Simulation (Critical Requirement)
-Our agent goes beyond advice by simulating real-world defense mechanisms:
-- **⚖️ FIA Complaint Generator:** Autonomously drafts a professional legal complaint for the Cybercrime wing.
-- **🛡️ Bank Protection Simulation:** Mocks a secure API call to pause transactions and protect accounts.
-- **📢 Family Safety Alert:** Generates instant WhatsApp/SMS drafts to warn relatives about trending scams.
+## 🚀 Action Simulation (CRITICAL REQUIREMENT)
+Our agent goes beyond advice by simulating real-world defense mechanisms. Each action is an autonomous outcome derived from the input analysis:
+- **⚖️ FIA Complaint Generator:** If `scam_score > 30`, the agent autonomously drafts a professional legal complaint for the Cybercrime wing, including specific details extracted from the scam.
+- **🛡️ Bank Protection Simulation:** Mocks a secure API call to a banking backend to pause transactions and protect accounts.
+- **📢 Family Safety Alert:** Generates instant WhatsApp/SMS drafts with pre-filled context to warn relatives.
 
 ---
 
 ## ✨ Key Features
-- 📸 **Multimodal Vision:** Scan JazzCash/Bank screenshots using Gemini Flash.
-- 🎤 **Urdu Voice (Suniye):** High-quality text-to-speech for accessibility.
-- 🔍 **Agent Trace:** Real-time visibility into the AI's planning and decision logs.
-- 📊 **Smart Budgeting:** Interactive 50/30/20 rule planner for local users.
-- ⚠️ **Live Scam Ticker:** Scrolling alerts on trending Pakistani financial threats.
-- 📱 **Native PWA:** Installable mobile experience for "Digital Inclusion."
+- 📸 **Multimodal Vision:** Scan bank screenshots using Gemini Flash vision capabilities.
+- 🎤 **Urdu Voice (Suniye):** High-quality text-to-speech for digital inclusion and accessibility.
+- 🔍 **Real-time Agent Trace:** View the AI's step-by-step reasoning *during* and after processing.
+- 📊 **Smart Budgeting:** Interactive 50/30/20 rule planner with AI-generated local saving tips.
+- ⚠️ **Live Scam Ticker:** Real-time scrolling alerts on trending Pakistani financial threats.
+- 📱 **Native PWA:** Fully installable mobile experience, satisfying the "Mobile App" deliverable.
 
 ---
 
@@ -47,11 +48,11 @@ Our agent goes beyond advice by simulating real-world defense mechanisms:
 ---
 
 ## 🛠️ Tech Stack
-- **AI Orchestration:** Google Antigravity Logic
-- **Model:** Google Gemini API (`gemini-flash-latest`)
-- **Backend:** Node.js, Express.js (Optimized for Vercel Serverless)
+- **AI Core:** Google Gemini API (`gemini-flash-latest`)
+- **Orchestration:** Custom Antigravity-inspired Agent Workflow
+- **Backend:** Node.js, Express.js (High-performance Serverless)
 - **Frontend:** Glassmorphism UI (HTML5, CSS3, Vanilla JS)
-- **Deployment:** Vercel (Auto-sync with GitHub)
+- **Deployment:** Vercel (Auto-sync CI/CD)
 
 ---
 
@@ -65,7 +66,7 @@ Our agent goes beyond advice by simulating real-world defense mechanisms:
    ```
 
 2. **Configure Environment:**
-   Set `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2` in your environment variables.
+   Set `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3` in your environment variables.
 
 3. **Run:**
    ```bash
