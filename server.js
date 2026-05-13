@@ -51,18 +51,19 @@ JSON Structure:
   ],
   "agent_trace": [
     "Step 1: Ingesting unstructured data...",
-    "Step 2: Extracting signals and patterns...",
-    "Step 3: Analyzing impact and risk...",
-    "Step 4: Formulating autonomous action plan."
+    "Step 2: Identifying Pakistani fraud patterns...",
+    "Step 3: Calculating Risk Score (0-100)...",
+    "Step 4: Mapping autonomous defense plan..."
   ],
-  "fia_complaint_draft": "Professional FIA complaint text if scam_score > 50, else null"
+  "fia_complaint_draft": "Detailed FIA Cybercrime complaint draft. MUST be provided if scam_score > 30."
 }
 
 Guidelines:
 - Language: Simple English + Urdu mix (Hinglish).
 - Scam Score: Always start with "⚠️ Scam Risk Score: X%".
 - Tone: Professional and protective.
-- If it's a budget query, focus on the 50/30/20 rule and skip the FIA draft.
+- Proactiveness: If you detect even a slight risk (scam_score > 30), you MUST provide a full fia_complaint_draft.
+- If it's a budget query, focus on the 50/30/20 rule and set scam_score to 0.
 `;
 
 // Initialize chat history (Resets on Vercel cold starts)
@@ -137,16 +138,34 @@ app.post('/chat', async (req, res) => {
       const response = await result.response;
       let rawText = response.text();
       
-      // CLEANING LOGIC: Remove markdown code blocks if AI accidentally includes them
-      rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-      
-      // Parse JSON safely
+      // IMPROVED CLEANING LOGIC: Extract JSON if it's wrapped in text or markdown
       let structuredResponse;
       try {
+        // Try direct parse first
         structuredResponse = JSON.parse(rawText);
-      } catch (parseErr) {
+      } catch (e) {
+        // Try extracting JSON from markdown blocks
+        const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          try {
+            structuredResponse = JSON.parse(jsonMatch[1]);
+          } catch (e2) {
+            // Last resort: find first { and last }
+            const firstBrace = rawText.indexOf('{');
+            const lastBrace = rawText.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1) {
+              try {
+                structuredResponse = JSON.parse(rawText.substring(firstBrace, lastBrace + 1));
+              } catch (e3) {
+                console.error("Failed to parse extracted JSON:", e3);
+              }
+            }
+          }
+        }
+      }
+
+      if (!structuredResponse) {
         console.error("JSON Parse Error. Raw text was:", rawText);
-        // Fallback response if JSON fails
         structuredResponse = {
           display_text: rawText.substring(0, 500),
           scam_score: 0,
@@ -157,9 +176,10 @@ app.post('/chat', async (req, res) => {
         };
       }
 
-      // Update history with the display text to save tokens
+      // Update history
+      // We store the display_text for the model to keep context, but we keep the system instructions in mind
       chatHistory.push({ role: 'user', parts: [{ text: message || '[Image]' }] });
-      chatHistory.push({ role: 'model', parts: [{ text: structuredResponse.display_text }] });
+      chatHistory.push({ role: 'model', parts: [{ text: JSON.stringify(structuredResponse) }] });
       if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
 
       // Add 'reply' field for backward compatibility

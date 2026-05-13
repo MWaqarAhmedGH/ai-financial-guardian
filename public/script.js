@@ -158,7 +158,8 @@ function appendMessage(text, sender, isImage = false, shouldSpeak = false, shoul
         msgDiv.appendChild(listenBtn);
 
         // Action Center for Challenge 1
-        if (structuredData && structuredData.recommended_actions) {
+        if (structuredData && structuredData.recommended_actions && structuredData.recommended_actions.length > 0) {
+            console.log("Rendering recommended actions:", structuredData.recommended_actions);
             const actionCenter = document.createElement('div');
             actionCenter.classList.add('action-center');
             
@@ -170,6 +171,8 @@ function appendMessage(text, sender, isImage = false, shouldSpeak = false, shoul
                 actionCenter.appendChild(btn);
             });
             msgDiv.appendChild(actionCenter);
+        } else {
+            console.log("No recommended actions to render or structuredData is missing.");
         }
 
         if (shouldSpeak) speakText(text);

@@ -191,45 +191,63 @@ button, .icon-btn, .clear-btn, .secondary-btn {
     box-shadow: 0 4px 15px rgba(0, 229, 255, 0.2);
 }
 
+.trace-btn.pulse {
+    animation: pulseGlow 2s infinite;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+}
+
+@keyframes pulseGlow {
+    0% { transform: scale(1); box-shadow: 0 0 5px rgba(0, 229, 255, 0.2); }
+    50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(0, 229, 255, 0.5); }
+    100% { transform: scale(1); box-shadow: 0 0 5px rgba(0, 229, 255, 0.2); }
+}
+
 /* Agent Trace & Action Buttons */
 .action-bar {
-    padding: 10px 20px;
+    padding: 15px 20px;
     display: flex;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.02);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: #0F172A; /* Darker solid background for contrast */
+    border-top: 1px solid rgba(0, 229, 255, 0.2);
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .trace-btn {
-    background: rgba(0, 229, 255, 0.1);
+    background: rgba(0, 229, 255, 0.15);
     color: #00E5FF;
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    padding: 6px 15px;
-    border-radius: 20px;
-    font-size: 0.8rem;
+    border: 1px solid #00E5FF;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .trace-btn:hover {
-    background: rgba(0, 229, 255, 0.2);
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+    background: rgba(0, 229, 255, 0.3);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+    transform: translateY(-1px);
 }
 
 .agent-trace-container {
     position: absolute;
-    bottom: 80px;
-    left: 20px;
-    right: 20px;
-    background: rgba(10, 15, 30, 0.95);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    border-radius: 15px;
+    bottom: 150px; /* Higher bottom to clear action-bar and input-area */
+    left: 15px;
+    right: 15px;
+    background: rgba(10, 15, 30, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--accent-blue);
+    border-radius: 20px;
     z-index: 100;
-    max-height: 300px;
+    max-height: 350px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.8);
     animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
