@@ -34,14 +34,35 @@ function rotateKey() {
 // AI System Prompt
 // ===============================
 const SYSTEM_PROMPT = `
-You are a premium, Google-level AI Financial Assistant for Pakistani users.
-Respond in Simple English + Urdu mix (Hinglish).
-Be concise (Max 8-12 lines). Use bullet points.
-Focus on:
-1. Scam Detection (BISP, Lottery, Bank Phishing).
-2. Financial Safety Advice.
-3. Smart Budgeting (50/30/20 rule).
-4. Only show Risk Score for suspicious content.
+You are an Agentic AI Financial Guardian for Pakistani users, powered by Google Antigravity.
+Your goal is to transform unstructured financial content (text/images) into ACTIONABLE outcomes.
+
+CRITICAL: You MUST respond in valid JSON format ONLY. Do not include markdown blocks or extra text.
+JSON Structure:
+{
+  "display_text": "Hinglish response (8-12 lines, bullet points, professional)",
+  "scam_score": number (0-100),
+  "insight": "Key fact extracted from input",
+  "impact": "Real-world consequence of this situation",
+  "recommended_actions": [
+    {"id": "fia_report", "label": "Generate FIA Complaint", "type": "draft"},
+    {"id": "bank_block", "label": "Simulate Bank Protection", "type": "simulation"},
+    {"id": "family_alert", "label": "Draft Family Alert", "type": "message"}
+  ],
+  "agent_trace": [
+    "Step 1: Ingesting unstructured data...",
+    "Step 2: Extracting signals and patterns...",
+    "Step 3: Analyzing impact and risk...",
+    "Step 4: Formulating autonomous action plan."
+  ],
+  "fia_complaint_draft": "Professional FIA complaint text if scam_score > 50, else null"
+}
+
+Guidelines:
+- Language: Simple English + Urdu mix (Hinglish).
+- Scam Score: Always start with "⚠️ Scam Risk Score: X%".
+- Tone: Professional and protective.
+- If it's a budget query, focus on the 50/30/20 rule and skip the FIA draft.
 `;
 
 // Initialize chat history (Resets on Vercel cold starts)
@@ -76,19 +97,18 @@ app.post('/chat', async (req, res) => {
   }
 
   if (apiKeys.length === 0) {
-    return res.status(500).json({ error: "API Keys not configured on Vercel. Please check Settings > Environment Variables." });
+    return res.status(500).json({ error: "API Keys not configured. Check Environment Variables." });
   }
 
   let lastError = "Unknown error";
 
-  // Retry logic through all available keys
   for (let attempts = 0; attempts < apiKeys.length; attempts++) {
     const currentKey = apiKeys[currentKeyIndex];
     
     try {
       const genAI = new GoogleGenerativeAI(currentKey);
       const model = genAI.getGenerativeModel({
-        model: 'gemini-flash-latest', // Standard working model name
+        model: 'gemini-flash-latest',
         systemInstruction: SYSTEM_PROMPT
       });
 
@@ -96,7 +116,8 @@ app.post('/chat', async (req, res) => {
         history: chatHistory,
         generationConfig: { 
           maxOutputTokens: 2048, 
-          temperature: 0.7 
+          temperature: 0.1, // Lower temperature for more reliable JSON
+          responseMimeType: "application/json" // Force JSON output
         }
       });
 
@@ -107,39 +128,54 @@ app.post('/chat', async (req, res) => {
         
         result = await chat.sendMessage([
           { inlineData: { data: matches[2], mimeType: matches[1] } },
-          message || 'Analyze this screenshot for scams.'
+          message || 'Analyze this content and provide an agentic response.'
         ]);
       } else {
         result = await chat.sendMessage(message);
       }
 
       const response = await result.response;
-      const text = response.text();
+      let rawText = response.text();
+      
+      // CLEANING LOGIC: Remove markdown code blocks if AI accidentally includes them
+      rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      // Parse JSON safely
+      let structuredResponse;
+      try {
+        structuredResponse = JSON.parse(rawText);
+      } catch (parseErr) {
+        console.error("JSON Parse Error. Raw text was:", rawText);
+        // Fallback response if JSON fails
+        structuredResponse = {
+          display_text: rawText.substring(0, 500),
+          scam_score: 0,
+          insight: "Data processing error",
+          impact: "Technical issue",
+          recommended_actions: [],
+          agent_trace: ["Error parsing structured output"]
+        };
+      }
 
-      // Update history only on success
+      // Update history with the display text to save tokens
       chatHistory.push({ role: 'user', parts: [{ text: message || '[Image]' }] });
-      chatHistory.push({ role: 'model', parts: [{ text }] });
+      chatHistory.push({ role: 'model', parts: [{ text: structuredResponse.display_text }] });
       if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
 
-      return res.json({ reply: text });
+      // Add 'reply' field for backward compatibility
+      structuredResponse.reply = structuredResponse.display_text;
+
+      return res.json(structuredResponse);
 
     } catch (error) {
       lastError = error.message;
       console.error(`Attempt ${attempts + 1} Failed:`, lastError);
-
-      // Handle specific safety block
-      if (error.response && error.response.promptFeedback && error.response.promptFeedback.blockReason) {
-        return res.json({ reply: 'Maaf kijiyega, yeh request safety filters ki wajah se block ho gayi hai. Baraye meherbani koi aur sawal poochein.' });
-      }
-
-      // Rotate to next key for next attempt
       rotateKey();
     }
   }
 
-  // Return specific error details to user if all keys fail
   return res.status(500).json({ 
-    error: `Nakam hogaye! AI connection fail ho gayi. (Total Keys: ${apiKeys.length}). Last Error: ${lastError}` 
+    error: `AI processing failed. Last Error: ${lastError}` 
   });
 });
 

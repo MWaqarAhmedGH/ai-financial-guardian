@@ -13,7 +13,14 @@ const budgetResults = document.getElementById('budget-results');
 const aiLogo = document.querySelector('.ai-logo');
 const aiBudgetTip = document.getElementById('ai-budget-tip');
 
+// Agent Trace Elements
+const toggleTraceBtn = document.getElementById('toggle-trace');
+const traceContainer = document.getElementById('agent-trace-container');
+const closeTraceBtn = document.getElementById('close-trace');
+const traceLogs = document.getElementById('trace-logs');
+
 let isVoiceMode = false;
+let currentAgentTrace = [];
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -24,20 +31,35 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// Agent Trace Toggle
+toggleTraceBtn.onclick = () => {
+    traceContainer.style.display = traceContainer.style.display === 'none' ? 'flex' : 'none';
+    if (traceContainer.style.display === 'flex') {
+        renderTrace();
+    }
+};
+closeTraceBtn.onclick = () => traceContainer.style.display = 'none';
+
+function renderTrace() {
+    traceLogs.innerHTML = currentAgentTrace.map(step => `
+        <div class="trace-step">${step}</div>
+    `).join('');
+}
+
 // Load History on Startup
 window.onload = () => {
     const savedHistory = JSON.parse(localStorage.getItem('chat_history') || '[]');
     if (savedHistory.length > 0) {
         chatWindow.innerHTML = '';
         savedHistory.forEach(msg => {
-            appendMessage(msg.text, msg.sender, msg.isImage, false, false);
+            appendMessage(msg.text, msg.sender, msg.isImage, false, false, msg.structuredData);
         });
     }
 };
 
-function saveToLocal(text, sender, isImage = false) {
+function saveToLocal(text, sender, isImage = false, structuredData = null) {
     const history = JSON.parse(localStorage.getItem('chat_history') || '[]');
-    history.push({ text, sender, isImage });
+    history.push({ text, sender, isImage, structuredData });
     localStorage.setItem('chat_history', JSON.stringify(history));
 }
 
@@ -70,7 +92,6 @@ incomeInput.oninput = () => {
         document.getElementById('bar-wants').style.width = "30%";
         document.getElementById('bar-savings').style.width = "20%";
 
-        // Show a random smart tip
         const randomTip = budgetTips[Math.floor(Math.random() * budgetTips.length)];
         aiBudgetTip.innerText = `🤖 AI Tip: ${randomTip.replace('{savings}', savings.toLocaleString())}`;
     } else {
@@ -79,7 +100,7 @@ incomeInput.oninput = () => {
     }
 };
 
-// Initialize Speech Recognition
+// Speech Recognition
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 if (SpeechRecognition) {
@@ -103,23 +124,19 @@ function formatMessage(text) {
 
 function speakText(text) {
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel(); // Clear previous speech
+    window.speechSynthesis.cancel();
     const cleanText = text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/🛑|✅|⚠️/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'ur-PK';
-    
-    // Pulse animation start
     utterance.onstart = () => aiLogo.classList.add('speaking');
-    // Pulse animation end
     utterance.onend = () => aiLogo.classList.remove('speaking');
-    
     const voices = window.speechSynthesis.getVoices();
     const urduVoice = voices.find(v => v.lang.includes('ur'));
     if (urduVoice) utterance.voice = urduVoice;
     window.speechSynthesis.speak(utterance);
 }
 
-function appendMessage(text, sender, isImage = false, shouldSpeak = false, shouldSave = true) {
+function appendMessage(text, sender, isImage = false, shouldSpeak = false, shouldSave = true, structuredData = null) {
     const msgDiv = document.createElement('div');
     msgDiv.classList.add('message');
     msgDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
@@ -140,13 +157,19 @@ function appendMessage(text, sender, isImage = false, shouldSpeak = false, shoul
         listenBtn.onclick = () => speakText(text);
         msgDiv.appendChild(listenBtn);
 
-        if (text.includes('🛑 SCAM')) {
-            const reportBtn = document.createElement('a');
-            reportBtn.innerText = '🚨 Report Scam';
-            reportBtn.href = 'https://complaint.fia.gov.pk/';
-            reportBtn.target = '_blank';
-            reportBtn.classList.add('report-btn');
-            msgDiv.appendChild(reportBtn);
+        // Action Center for Challenge 1
+        if (structuredData && structuredData.recommended_actions) {
+            const actionCenter = document.createElement('div');
+            actionCenter.classList.add('action-center');
+            
+            structuredData.recommended_actions.forEach(action => {
+                const btn = document.createElement('div');
+                btn.classList.add('action-chip');
+                btn.innerHTML = `<span>⚡</span> ${action.label}`;
+                btn.onclick = () => handleActionSimulation(action, structuredData, btn);
+                actionCenter.appendChild(btn);
+            });
+            msgDiv.appendChild(actionCenter);
         }
 
         if (shouldSpeak) speakText(text);
@@ -156,18 +179,44 @@ function appendMessage(text, sender, isImage = false, shouldSpeak = false, shoul
     
     chatWindow.appendChild(msgDiv);
     chatWindow.scrollTop = chatWindow.scrollHeight;
-    if (shouldSave) saveToLocal(text, sender, isImage);
+    if (shouldSave) saveToLocal(text, sender, isImage, structuredData);
+}
+
+async function handleActionSimulation(action, data, btnElement) {
+    btnElement.classList.add('executing');
+    btnElement.innerHTML = `<span>⏳</span> Simulating...`;
+
+    // Artificial delay for realism
+    await new Promise(r => setTimeout(r, 1500));
+
+    btnElement.classList.remove('executing');
+    btnElement.classList.add('success');
+    btnElement.innerHTML = `<span>✅</span> ${action.label} Done`;
+
+    if (action.id === 'fia_report' && data.fia_complaint_draft) {
+        const draftDiv = document.createElement('div');
+        draftDiv.classList.add('fia-modal-content');
+        draftDiv.innerHTML = `<strong>OFFICIAL FIA COMPLAINT DRAFT:</strong><br><br>${data.fia_complaint_draft}`;
+        btnElement.parentElement.parentElement.appendChild(draftDiv);
+    } else if (action.id === 'bank_block') {
+        alert("SIMULATION: Request sent to Bank API. Account is now PROTECTED and transactions are paused.");
+    } else if (action.id === 'family_alert') {
+        const alertText = `🚨 Alert: ${data.insight}. Humne AI Guardian use kiya hai financial safety ke liye.`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(alertText)}`, '_blank');
+    }
 }
 
 async function sendMessage(text = null, imageData = null) {
     const message = text || userInput.value.trim();
     if (!message && !imageData) return;
+    
     if (imageData) {
         appendMessage(imageData, 'user', true);
-        appendMessage(message || "Analyze this screenshot for scams.", 'user');
+        appendMessage(message || "Analyze this content for scams.", 'user');
     } else {
         appendMessage(message, 'user');
     }
+    
     userInput.value = '';
     const loadingDiv = document.createElement('div');
     loadingDiv.classList.add('loading');
@@ -179,18 +228,26 @@ async function sendMessage(text = null, imageData = null) {
         const response = await fetch('/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: message || "Analyze this screenshot for scams.", image: imageData }),
+            body: JSON.stringify({ message: message || "Analyze this content.", image: imageData }),
         });
+        
         const data = await response.json();
         chatWindow.removeChild(loadingDiv);
-        if (data.reply) {
-            appendMessage(data.reply, 'ai', false, isVoiceMode);
+        
+        if (data.display_text) {
+            currentAgentTrace = data.agent_trace || [];
+            appendMessage(data.display_text, 'ai', false, isVoiceMode, true, data);
+            
+            // Auto-open trace once to show logic if it's a first time
+            if (currentAgentTrace.length > 0) {
+                toggleTraceBtn.classList.add('pulse');
+            }
         } else if (data.error) {
             appendMessage(data.error, 'ai');
         }
     } catch (error) {
         if (chatWindow.contains(loadingDiv)) chatWindow.removeChild(loadingDiv);
-        appendMessage('Connection error. Try again.', 'ai');
+        appendMessage('AI connection error. Check your API keys.', 'ai');
     } finally {
         isVoiceMode = false;
     }

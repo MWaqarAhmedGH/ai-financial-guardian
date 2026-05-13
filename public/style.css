@@ -191,6 +191,146 @@ button, .icon-btn, .clear-btn, .secondary-btn {
     box-shadow: 0 4px 15px rgba(0, 229, 255, 0.2);
 }
 
+/* Agent Trace & Action Buttons */
+.action-bar {
+    padding: 10px 20px;
+    display: flex;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.trace-btn {
+    background: rgba(0, 229, 255, 0.1);
+    color: #00E5FF;
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.trace-btn:hover {
+    background: rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.agent-trace-container {
+    position: absolute;
+    bottom: 80px;
+    left: 20px;
+    right: 20px;
+    background: rgba(10, 15, 30, 0.95);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    border-radius: 15px;
+    z-index: 100;
+    max-height: 300px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.trace-header {
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.trace-header h3 {
+    font-size: 0.9rem;
+    margin: 0;
+    color: #00E5FF;
+}
+
+.close-trace {
+    cursor: pointer;
+    font-size: 1.5rem;
+}
+
+.trace-logs {
+    padding: 15px;
+    overflow-y: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: #a0a0a0;
+    line-height: 1.6;
+}
+
+.trace-step {
+    margin-bottom: 8px;
+    display: flex;
+    gap: 10px;
+}
+
+.trace-step::before {
+    content: "→";
+    color: #00E5FF;
+}
+
+/* Action Center in AI Message */
+.action-center {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.action-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.action-chip:hover {
+    background: rgba(0, 229, 255, 0.1);
+    border-color: #00E5FF;
+    transform: translateY(-2px);
+}
+
+.action-chip.executing {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: #FFC107;
+    pointer-events: none;
+}
+
+.action-chip.success {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: #4CAF50;
+    color: #4CAF50;
+}
+
+.fia-modal-content {
+    background: #f8f9fa;
+    color: #333;
+    padding: 20px;
+    border-radius: 10px;
+    font-family: 'Noto Sans Arabic', serif;
+    white-space: pre-wrap;
+    border: 2px solid #0056b3;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
 /* Input Area */
 .input-area {
     padding: 20px 30px;
