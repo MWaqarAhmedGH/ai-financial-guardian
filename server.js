@@ -67,66 +67,59 @@ app.post('/execute-action', async (req, res) => {
 });
 
 // ===============================
-// Reasoning Engine (Advanced)
+// Reasoning Engine (Robust & Dynamic)
 // ===============================
 app.get('/analyze', async (req, res) => {
   try {
-    // 1. Ingest Data
     const sources = [
-      { name: 'report', file: 'report.json' },
-      { name: 'news', file: 'news.json' },
-      { name: 'inventory', file: 'inventory.csv' },
-      { name: 'forecast', file: 'table.json' },
-      { name: 'feed', file: 'feed.json' }
+      { name: 'financial_report', file: 'report.json' },
+      { name: 'market_news', file: 'news.json' },
+      { name: 'inventory_data', file: 'inventory.csv' },
+      { name: 'forecast_table', file: 'table.json' },
+      { name: 'live_feed', file: 'feed.json' }
     ];
 
     const context = {};
+    const errors = [];
+
+    // 1. Robust Ingestion (Handles partial failures)
     for (const source of sources) {
-      const filePath = path.join(__dirname, 'data', source.file);
-      const content = await fs.readFile(filePath, 'utf8');
-      context[source.name] = source.file.endsWith('.json') ? JSON.parse(content) : content;
+      try {
+        const filePath = path.join(__dirname, 'data', source.file);
+        const content = await fs.readFile(filePath, 'utf8');
+        context[source.name] = source.file.endsWith('.json') ? JSON.parse(content) : content;
+      } catch (err) {
+        errors.push(`Failed to load ${source.name}: ${err.message}`);
+        context[source.name] = null; // Mark as missing/failed
+      }
     }
 
-    // 2. Noise Filtering (Simple Sanitization)
-    const filteredFeed = context.feed.signal ? context.feed.signal : "No valid signal";
-    
-    // 3. Temporal Analysis & Contradiction Detection
-    // Logic: Compare predicted forecast with current inventory trend
-    let contradictionDetected = false;
-    let trend = "Stable";
-    
-    // Simulated Temporal logic: comparing inventory levels
-    if (context.forecast.forecast.prediction === 'Upward') {
-      contradictionDetected = true;
-    }
-    
-    if (contradictionDetected) {
-      trend = "Mismatch: Growth Predicted vs Inventory Critical";
-    }
+    // 2. Dynamic Reasoning with Recovery Path
+    const prompt = `
+      Analyze the following data streams. If some sources are missing (null), provide a plan that works with available data and explicitly notes the missing sources.
+      Data: ${JSON.stringify(context)}
+      Errors: ${JSON.stringify(errors)}
 
-    // 4. Generate Insight & Reasoning Trace
-    const trace = [
-      "Step 1: Ingesting 5 sources...",
-      "Step 2: Noise Filtering complete (removed stale signals).",
-      "Step 3: Temporal Analysis: Comparing Inventory trend vs Market Forecast...",
-      contradictionDetected ? "Step 4: CONTRADICTION DETECTED: " + trend : "Step 4: Trends consistent.",
-      "Step 5: Prioritizing actions based on Urgency and Budget constraints."
-    ];
+      Your goal is to detect contradictions, identify trends, and generate a 3-step action plan.
+      Respond in JSON format ONLY:
+      {
+        "insight": "Main finding",
+        "contradictions": "Detected discrepancies or missing data warnings",
+        "recommended_actions": [{"id": 1, "action": "...", "urgency": "..."}],
+        "agent_trace": ["Step 1...", "Step 2...", "Step 3...", "Step 4..."],
+        "recovery_plan": "How to proceed despite missing data"
+      }
+    `;
 
-    const analysis = {
-      insight: contradictionDetected ? "Supply-demand mismatch detected." : "Operational stability confirmed.",
-      contradictions: trend,
-      recommended_actions: [
-        { id: 1, action: "Expedite Raw Material Order (Requires Approval)", urgency: "High" },
-        { id: 2, action: "Notify Sales Team to manage expectations", urgency: "Medium" },
-        { id: 3, action: "Adjust Marketing Spend to conserve budget", urgency: "Low" }
-      ],
-      agent_trace: trace
-    };
+    const genAI = new GoogleGenerativeAI(apiKeys[currentKeyIndex]);
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const result = await model.generateContent(prompt);
+    const analysis = JSON.parse(result.response.text());
 
-    res.json({ status: 'analyzed', analysis });
+    res.json({ status: 'analyzed', analysis, errors });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Reasoning Engine Error:", err);
+    res.status(500).json({ error: "Failed to perform robust reasoning." });
   }
 });
 

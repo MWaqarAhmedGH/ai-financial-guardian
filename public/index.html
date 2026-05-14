@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <title>Autonomous Agent Dashboard</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
 </head>
 <body>
     <h1>Autonomous Content-to-Action Agent</h1>
