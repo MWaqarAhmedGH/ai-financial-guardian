@@ -92,26 +92,24 @@ app.get('/analyze', async (req, res) => {
     }
 
     const prompt = `
-      Analyze the following data streams for a Supply Chain Financial Guardian:
-      ${JSON.stringify(context)}
+      Analyze the following data streams: ${JSON.stringify(context)}.
 
-      Your goal is to detect contradictions, identify trends, and generate a 3-step prioritized action plan.
-      Respond in JSON format ONLY:
+      Your goal is to act as an Agentic Financial Guardian. You must follow these steps:
+      1. Think: Analyze contradictions and data.
+      2. Plan: Formulate a strategy based on cost/urgency constraints.
+      3. Decide: Generate recommended actions.
+      
+      Respond in JSON format ONLY with these exact keys:
       {
-        "insight": "Main finding",
-        "impact_assessment": "The real-world business consequence of this insight (e.g., revenue loss, delivery delay).",
-        "contradictions": "Detected discrepancies",
-        "recommended_actions": [{"id": 1, "action": "...", "urgency": "High", "cost": 100}],
-        "agent_trace": {
-            "workplan": "Define the mission objective.",
-            "tasks_plan": ["Task 1", "Task 2"],
-            "reasoning": "Step-by-step logic",
-            "decision_flow": "Decision path taken",
-            "action_execution": "Specific actions to execute"
-        },
-        "before_state": "Inventory: 50, Status: Normal",
-        "after_state": "Inventory: 40, Status: Re-order triggered",
-        "fallback_needed": ${missingSources.length > 0}
+        "planning_trace": "The thinking process: why this strategy is chosen over others.",
+        "tasks_plan": ["Task 1", "Task 2"],
+        "reasoning": "Step-by-step analytical logic",
+        "decision_flow": "Logic behind the decision",
+        "action_execution": "Specific actions to execute",
+        "before_state": "Visual state representation",
+        "after_state": "Expected visual state",
+        "fallback_needed": ${missingSources.length > 0},
+        "recommended_actions": [{"id": 1, "action": "Order Restock", "urgency": "High", "cost": 100}]
       }
     `;
 

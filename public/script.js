@@ -8,18 +8,18 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
     if (result.status === 'analyzed') {
         const { analysis } = result;
         
-        // Visualize the 5-point trace as required by PDF
+        // Visualize the compliant trace including the 'Planning Phase'
         document.getElementById('insight').innerHTML = `
             <h3>Agent Trace (PDF Compliant):</h3>
             <div class="log-box">
-                <p><strong>Workplan:</strong> ${analysis.agent_trace.workplan}</p>
-                <p><strong>Tasks:</strong> ${analysis.agent_trace.tasks_plan.join(', ')}</p>
-                <p><strong>Reasoning:</strong> ${analysis.agent_trace.reasoning}</p>
-                <p><strong>Decision Flow:</strong> ${analysis.agent_trace.decision_flow}</p>
-                <p><strong>Execution Plan:</strong> ${analysis.agent_trace.action_execution}</p>
+                <p><strong>Planning Trace:</strong> ${analysis.planning_trace}</p>
+                <p><strong>Workplan:</strong> ${analysis.workplan}</p>
+                <p><strong>Tasks:</strong> ${analysis.tasks_plan.join(', ')}</p>
+                <p><strong>Reasoning:</strong> ${analysis.reasoning}</p>
+                <p><strong>Decision Flow:</strong> ${analysis.decision_flow}</p>
+                <p><strong>Execution Plan:</strong> ${analysis.action_execution}</p>
             </div>
             <div class="state-box">
-                <p><strong>Impact:</strong> ${analysis.impact_assessment || 'N/A'}</p>
                 <p><strong>Before Action State:</strong> ${analysis.before_state}</p>
                 <p><strong>Expected After State:</strong> ${analysis.after_state}</p>
             </div>
