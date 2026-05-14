@@ -67,10 +67,11 @@ app.post('/execute-action', async (req, res) => {
 });
 
 // ===============================
-// Reasoning Engine (Zero-Gap Compliant)
+// Reasoning Engine (Final Compliance Version)
 // ===============================
 app.get('/analyze', async (req, res) => {
   try {
+    const { fault } = req.query; 
     const sources = [
       { name: 'financial_report', file: 'report.json' },
       { name: 'market_news', file: 'news.json' },
@@ -80,47 +81,39 @@ app.get('/analyze', async (req, res) => {
     ];
 
     const context = {};
-    const missingSources = [];
     for (const source of sources) {
       try {
         const filePath = path.join(__dirname, 'data', source.file);
+        if (fault === source.name) throw new Error("Fault injected");
         context[source.name] = await fs.readFile(filePath, 'utf8');
       } catch (err) {
-        missingSources.push(source.name);
         context[source.name] = null;
       }
     }
 
     const prompt = `
-      Analyze the following data streams: ${JSON.stringify(context)}.
-
-      Your goal is to act as an Agentic Financial Guardian. You must follow these steps:
-      1. Think: Analyze contradictions and data.
-      2. Plan: Formulate a strategy based on cost/urgency constraints.
-      3. Decide: Generate recommended actions.
-      
-      Respond in JSON format ONLY with these exact keys:
+      Analyze this data: ${JSON.stringify(context)}.
+      You are an Agent. You MUST provide the response in this EXACT structured JSON format:
       {
-        "planning_trace": "The thinking process: why this strategy is chosen over others.",
+        "workplan": "Objective of this analysis.",
         "tasks_plan": ["Task 1", "Task 2"],
-        "reasoning": "Step-by-step analytical logic",
+        "reasoning": "Step-by-step logic",
         "decision_flow": "Logic behind the decision",
         "action_execution": "Specific actions to execute",
         "before_state": "Visual state representation",
         "after_state": "Expected visual state",
-        "fallback_needed": ${missingSources.length > 0},
-        "recommended_actions": [{"id": 1, "action": "Order Restock", "urgency": "High", "cost": 100}]
+        "recommended_actions": [{"id": 1, "action": "Action", "urgency": "High", "cost": 100}]
       }
     `;
 
     const genAI = new GoogleGenerativeAI(apiKeys[currentKeyIndex]);
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
     const result = await model.generateContent(prompt);
-    const analysis = JSON.parse(result.response.text());
+    const analysis = JSON.parse(result.response.text().replace(/```json/g, '').replace(/```/g, ''));
 
     res.json({ status: 'analyzed', analysis });
   } catch (err) {
-    res.status(500).json({ error: "Failed trace generation." });
+    res.status(500).json({ error: "Failed to perform robust reasoning." });
   }
 });
 
