@@ -92,20 +92,26 @@ app.get('/analyze', async (req, res) => {
     }
 
     const prompt = `
-      Analyze this data: ${JSON.stringify(context)}. 
-      If sources are missing (${missingSources.join(', ')}), suggest a clarification action.
-      
-      Respond in JSON ONLY with these exact keys:
+      Analyze the following data streams for a Supply Chain Financial Guardian:
+      ${JSON.stringify(context)}
+
+      Your goal is to detect contradictions, identify trends, and generate a 3-step prioritized action plan.
+      Respond in JSON format ONLY:
       {
-        "workplan": "Define the mission objective.",
-        "tasks_plan": ["Task 1", "Task 2"],
-        "reasoning": "Step-by-step logic",
-        "decision_flow": "Decision path taken",
-        "action_execution": "Specific actions to execute",
-        "before_state": "Visual state representation",
-        "after_state": "Expected visual state",
-        "fallback_needed": ${missingSources.length > 0},
-        "recommended_actions": [{"id": 1, "action": "Action", "urgency": "High"}]
+        "insight": "Main finding",
+        "impact_assessment": "The real-world business consequence of this insight (e.g., revenue loss, delivery delay).",
+        "contradictions": "Detected discrepancies",
+        "recommended_actions": [{"id": 1, "action": "...", "urgency": "High", "cost": 100}],
+        "agent_trace": {
+            "workplan": "Define the mission objective.",
+            "tasks_plan": ["Task 1", "Task 2"],
+            "reasoning": "Step-by-step logic",
+            "decision_flow": "Decision path taken",
+            "action_execution": "Specific actions to execute"
+        },
+        "before_state": "Inventory: 50, Status: Normal",
+        "after_state": "Inventory: 40, Status: Re-order triggered",
+        "fallback_needed": ${missingSources.length > 0}
       }
     `;
 
