@@ -67,7 +67,7 @@ app.post('/execute-action', async (req, res) => {
 });
 
 // ===============================
-// Reasoning Engine (Robust & Dynamic)
+// Reasoning Engine (Zero-Gap Compliant)
 // ===============================
 app.get('/analyze', async (req, res) => {
   try {
@@ -80,34 +80,32 @@ app.get('/analyze', async (req, res) => {
     ];
 
     const context = {};
-    const errors = [];
-
-    // 1. Robust Ingestion (Handles partial failures)
+    const missingSources = [];
     for (const source of sources) {
       try {
         const filePath = path.join(__dirname, 'data', source.file);
-        const content = await fs.readFile(filePath, 'utf8');
-        context[source.name] = source.file.endsWith('.json') ? JSON.parse(content) : content;
+        context[source.name] = await fs.readFile(filePath, 'utf8');
       } catch (err) {
-        errors.push(`Failed to load ${source.name}: ${err.message}`);
-        context[source.name] = null; // Mark as missing/failed
+        missingSources.push(source.name);
+        context[source.name] = null;
       }
     }
 
-    // 2. Dynamic Reasoning with Recovery Path
     const prompt = `
-      Analyze the following data streams. If some sources are missing (null), provide a plan that works with available data and explicitly notes the missing sources.
-      Data: ${JSON.stringify(context)}
-      Errors: ${JSON.stringify(errors)}
-
-      Your goal is to detect contradictions, identify trends, and generate a 3-step action plan.
-      Respond in JSON format ONLY:
+      Analyze this data: ${JSON.stringify(context)}. 
+      If sources are missing (${missingSources.join(', ')}), suggest a clarification action.
+      
+      Respond in JSON ONLY with these exact keys:
       {
-        "insight": "Main finding",
-        "contradictions": "Detected discrepancies or missing data warnings",
-        "recommended_actions": [{"id": 1, "action": "...", "urgency": "..."}],
-        "agent_trace": ["Step 1...", "Step 2...", "Step 3...", "Step 4..."],
-        "recovery_plan": "How to proceed despite missing data"
+        "workplan": "Define the mission objective.",
+        "tasks_plan": ["Task 1", "Task 2"],
+        "reasoning": "Step-by-step logic",
+        "decision_flow": "Decision path taken",
+        "action_execution": "Specific actions to execute",
+        "before_state": "Visual state representation",
+        "after_state": "Expected visual state",
+        "fallback_needed": ${missingSources.length > 0},
+        "recommended_actions": [{"id": 1, "action": "Action", "urgency": "High"}]
       }
     `;
 
@@ -116,10 +114,9 @@ app.get('/analyze', async (req, res) => {
     const result = await model.generateContent(prompt);
     const analysis = JSON.parse(result.response.text());
 
-    res.json({ status: 'analyzed', analysis, errors });
+    res.json({ status: 'analyzed', analysis });
   } catch (err) {
-    console.error("Reasoning Engine Error:", err);
-    res.status(500).json({ error: "Failed to perform robust reasoning." });
+    res.status(500).json({ error: "Failed trace generation." });
   }
 });
 
