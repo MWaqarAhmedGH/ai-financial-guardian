@@ -7,6 +7,10 @@
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "server.js" }
+    { "src": "/analyze", "dest": "server.js" },
+    { "src": "/execute-action", "dest": "server.js" },
+    { "src": "/chat", "dest": "server.js" },
+    { "src": "/api-status", "dest": "server.js" },
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }

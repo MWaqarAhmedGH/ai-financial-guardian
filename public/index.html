@@ -3,32 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>Autonomous Financial Guardian Agent</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?v=2.0">
     <link rel="manifest" href="/manifest.json">
 </head>
-<body>
-    <h1>Autonomous Agent: Supply Chain Guardian</h1>
-    <div id="controls">
-        <button id="analyzeBtn">Run Autonomous Analysis</button>
+<body style="font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px;">
+    <h1 style="color: #1a73e8; text-align: center;">Autonomous Agent: Supply Chain Guardian</h1>
+    
+    <div id="controls" style="text-align: center; margin-bottom: 20px;">
+        <button id="analyzeBtn" style="padding: 12px 24px; font-size: 16px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer;">
+            🚀 Run Autonomous Analysis
+        </button>
     </div>
     
-    <div id="dashboard">
-        <div id="logs" class="log-box">
-            <h3>System Logs</h3>
-            <p>Ready for command...</p>
+    <div id="dashboard" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto;">
+        <div id="logs" class="log-box" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-height: 400px;">
+            <h3 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">Agent Trace Monitor</h3>
+            <p style="color: #666;">Ready for autonomous command...</p>
         </div>
-        <div id="visualizer">
-            <div id="insight"></div>
+        
+        <div id="visualizer" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div id="insight"><h3 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">System Outcomes</h3></div>
             <div id="actions"></div>
         </div>
     </div>
 
-    <script src="/script.js"></script>
+    <script src="/script.js?v=2.0"></script>
     <script>
+        // Force unregister old service workers to fix the "broken layout" cache issue
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(err => console.log("SW error", err));
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
             });
         }
     </script>
