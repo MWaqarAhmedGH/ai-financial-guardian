@@ -10,9 +10,14 @@ const app = express();
 // ===============================
 app.use(express.json({ limit: '10mb' }));
 
-// Serve static files from the 'public' directory
+// Serve static files
 const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
+
+// Explicit route for the homepage
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
 
 // ===============================
 // Action Execution Engine (Constraint-Hardened)
