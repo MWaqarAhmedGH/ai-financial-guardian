@@ -4,40 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Autonomous Financial Guardian Agent</title>
-    <link rel="stylesheet" href="/style.css?v=2.0">
-    <link rel="manifest" href="/manifest.json">
+    <!-- INLINE CSS TO PREVENT ANY LOAD FAILURE -->
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; padding: 20px; }
+        h1 { color: #1a73e8; text-align: center; }
+        #controls { text-align: center; margin-bottom: 20px; }
+        #analyzeBtn { padding: 12px 24px; font-size: 16px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        #analyzeBtn:hover { background: #1557b0; transform: translateY(-1px); transition: 0.2s; }
+        #dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .log-box { background: #fff; padding: 20px; border-radius: 12px; border-left: 6px solid #1a73e8; margin-bottom: 20px; overflow-wrap: break-word; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-height: 400px; }
+        .state-box { background: #e8f0fe; padding: 15px; border-radius: 8px; margin-top: 10px; font-weight: 500; }
+        #visualizer { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .result-box { background: #e6fffa; border: 1px solid #38b2ac; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .visual-assets { margin-top: 10px; background: #f8f9fa; padding: 10px; border-radius: 6px; }
+        .error-box { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; padding: 15px; border-radius: 8px; }
+        h3 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    </style>
 </head>
-<body style="font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px;">
-    <h1 style="color: #1a73e8; text-align: center;">Autonomous Agent: Supply Chain Guardian</h1>
+<body>
+    <h1>Autonomous Agent: Supply Chain Guardian</h1>
     
-    <div id="controls" style="text-align: center; margin-bottom: 20px;">
-        <button id="analyzeBtn" style="padding: 12px 24px; font-size: 16px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer;">
-            🚀 Run Autonomous Analysis
-        </button>
+    <div id="controls">
+        <button id="analyzeBtn">🚀 Run Autonomous Analysis</button>
     </div>
     
-    <div id="dashboard" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto;">
-        <div id="logs" class="log-box" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-height: 400px;">
-            <h3 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">Agent Trace Monitor</h3>
-            <p style="color: #666;">Ready for autonomous command...</p>
+    <div id="dashboard">
+        <div id="logs" class="log-box">
+            <h3>Agent Trace Monitor</h3>
+            <p>Ready for command...</p>
         </div>
         
-        <div id="visualizer" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <div id="insight"><h3 style="border-bottom: 2px solid #eee; padding-bottom: 10px;">System Outcomes</h3></div>
+        <div id="visualizer">
+            <div id="insight"><h3>System Outcomes</h3></div>
             <div id="actions"></div>
         </div>
     </div>
 
-    <script src="/script.js?v=2.0"></script>
+    <!-- INLINE SCRIPT HOOK -->
+    <script src="/script.js?v=3.0"></script>
     <script>
-        // Force unregister old service workers to fix the "broken layout" cache issue
+        // NUCLEAR OPTION: Completely kill any existing service workers that might be caching old layout
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for(let registration of registrations) {
                     registration.unregister();
+                    console.log("Old Service Worker Unregistered");
                 }
             });
+        }
+        // Force reload page once if service worker was just killed
+        if (!window.location.search.includes('v=3')) {
+            window.location.href = window.location.origin + window.location.pathname + '?v=3';
         }
     </script>
 </body>
