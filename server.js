@@ -13,6 +13,11 @@ app.use(express.json({ limit: '10mb' }));
 const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
 
+// Explicit Root Route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
+
 // ===============================
 // Load API Keys from Environment
 // ===============================

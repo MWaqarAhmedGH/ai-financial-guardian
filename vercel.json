@@ -7,9 +7,6 @@
     }
   ],
   "routes": [
-    { "src": "/chat", "dest": "server.js" },
-    { "src": "/api-status", "dest": "server.js" },
-    { "src": "/", "dest": "/public/index.html" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+    { "src": "/(.*)", "dest": "server.js" }
   ]
 }
