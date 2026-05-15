@@ -6,11 +6,10 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
-    { "src": "/analyze", "dest": "server.js" },
-    { "src": "/execute-action", "dest": "server.js" },
-    { "src": "/chat", "dest": "server.js" },
-    { "src": "/api-status", "dest": "server.js" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+  "rewrites": [
+    { "source": "/analyze", "destination": "/server.js" },
+    { "source": "/execute-action", "destination": "/server.js" },
+    { "source": "/chat", "destination": "/server.js" },
+    { "source": "/api-status", "destination": "/server.js" }
   ]
 }
