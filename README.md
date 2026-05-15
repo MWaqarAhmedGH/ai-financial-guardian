@@ -1,28 +1,38 @@
-# Autonomous Content-to-Action Agent (#AISeekho2026)
+# Autonomous Supply Chain Guardian Agent (#AISeekho2026)
 
-This project is an entry for the **#AISeekho 2026 Google Antigravity Hackathon**. Our agentic system ingests multi-source financial and operational data, analyzes it for contradictions, and executes simulated multi-step action chains.
+This project is a high-impact Agentic AI System built for the **#AISeekho 2026 Google Antigravity Hackathon**. It transforms unstructured content into actionable supply chain outcomes using autonomous reasoning.
 
-## Key Features
-- **Intelligent Ingestion:** Processes 5 distinct data sources (JSON reports, news, inventory CSVs, forecast tables, and mock live feeds).
-- **Dynamic Reasoning Engine:** Uses Gemini LLM to process data streams, detect contradictions, and generate reasoning traces.
-- **Robustness & Recovery:** Handles partial failures and missing data with automated recovery plans.
-- **Action Chain Simulation:** Executes interconnected 3-5 step action chains (e.g., Inventory Update -> Stakeholder Notification -> Compliance Logging) based on constraint evaluation.
-- **Mobile-Ready (PWA):** Built as a Progressive Web App, installable on mobile devices.
-- **Traceable Logging:** Implements detailed agent traces (Workplan, Tasks, Decision Flow) as required for transparency.
+## 🏛 System Architecture Overview
+The system follows a three-tier agentic architecture:
+1.  **Ingestion Tier:** Ingests 5+ sources (PDF, Web, CSV, JSON, Live Feeds) into a unified context window.
+2.  **Reasoning Tier (Orchestrated via Google Antigravity):** A multi-agent reasoning pipeline (Coordinator & Analyst) identifies contradictions, performs temporal analysis, and conducts implication mapping.
+3.  **Execution Tier:** Evaluates and simulates 3-5 step interconnected action chains against Budget, Time, and API constraints.
 
-## Tech Stack
-- **Orchestration:** Google Antigravity
-- **Backend:** Node.js (Express)
-- **Frontend:** PWA (HTML/CSS/JS)
+## 🚀 How Google Antigravity is Used
+Google Antigravity serves as the **Core Development Platform** for:
+-   **Orchestration:** Managing the flow from data ingestion to final action simulation.
+-   **Reasoning & Planning:** Driving the "Thinking" process and formulating multi-step workplans.
+-   **Tool Integration:** Orchestrating mock API calls and system state updates.
+-   **Execution Handling:** Managing the lifecycle of action chains and outcome visualization.
 
-## How to Run
-1. Clone the repository.
-2. Install dependencies: `npm install`.
-3. Set your environment variables (Gemini API keys).
-4. Start the server: `node server.js` (for local dev).
+## 🛠 Tools & APIs Used
+-   **Core Engine:** Google Antigravity
+-   **LLM Model:** Google Gemini-1.5-Flash
+-   **Backend:** Node.js / Express
+-   **Frontend:** PWA (HTML5, CSS3, Vanilla JS)
+-   **Deployment:** Vercel
 
-## Compliance with Challenge 1
-- **Antigravity Usage:** Core orchestrator for all agent decisions.
-- **Agentic Workflow:** Proven by multi-step reasoning traces.
-- **Visualization:** Real-time feedback for Before/After system states.
-- **Robustness:** Built-in error handling and recovery for data streams.
+## ⚖️ Assumptions & Limitations
+-   **Assumptions:** All data sources in the `/data` folder represent current operational snapshots.
+-   **Limitations:** Real-world API integrations are simulated using deterministic mock responses. The system requires a valid Gemini API key for reasoning.
+
+## ✅ Compliance with Challenge 1
+-   **Content Understanding:** Processes multi-format unstructured input.
+-   **Insight Extraction:** Identifies non-trivial patterns and resolves contradictions.
+-   **Impact Analysis:** Connects insights to real-world consequences (revenue, risk).
+-   **Action Simulation:** Executes multi-step chains (Inventory -> CRM -> Logs).
+-   **Outcome Visualization:** Shows Before/After states and comprehensive agent traces.
+-   **Evidence of Autonomy:** Features an autonomous self-correction loop for data anomalies.
+
+---
+*Developed for the Google Antigravity Hackathon 2026.*

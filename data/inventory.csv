@@ -1,3 +1,5 @@
-"item","stock","min_level"
-"Widget A", 50, 100
-"Widget B", 20, 50
+item_id,region,category,stock_level,reorder_point,status
+SKU-101,Lahore,Electronics,12,50,CRITICAL
+SKU-102,Karachi,Electronics,85,50,NORMAL
+SKU-103,Islamabad,Essentials,120,40,EXCESS
+SKU-104,Lahore,Logistics,5,10,LOW

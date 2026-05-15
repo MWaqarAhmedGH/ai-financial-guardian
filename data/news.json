@@ -1,1 +1,5 @@
-{ "headline": "Fuel prices surge by 10%", "impact": "High" }
+[
+  {"date": "2026-05-15", "headline": "Fuel prices projected to rise by 12% next week.", "impact": "High"},
+  {"date": "2026-05-14", "headline": "Port strike in Karachi causing logistics delays for Northern warehouses.", "impact": "Critical"},
+  {"date": "2026-05-13", "headline": "Consumer demand for electronics spikes in Lahore region.", "impact": "High"}
+]

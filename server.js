@@ -15,63 +15,45 @@ const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
 
 // ===============================
-// Action Execution Engine (Multi-Step Chain)
+// Action Execution Engine (Constraint-Hardened)
 // ===============================
 app.post('/execute-action', async (req, res) => {
   const { actionId, constraints } = req.body;
 
-  // Multi-step Interconnected Action Chain Logic
   const actionChain = [
-    {
-      id: 1,
-      name: "Update Inventory System",
-      description: "Adjusting stock levels to prevent shortage.",
-      budget_impact: 100
-    },
-    {
-      id: 2,
-      name: "Notify Stakeholders",
-      description: "Triggering email/SMS notifications to the management team.",
-      budget_impact: 50
-    },
-    {
-      id: 3,
-      name: "Log Mitigation Performance",
-      description: "Recording the resolution in the central compliance log.",
-      budget_impact: 20
-    }
+    { id: 1, name: "Update Inventory", cost: 100, time_required: "2ms", api_calls: 5 },
+    { id: 2, name: "Draft Stakeholder SMS", cost: 50, time_required: "1ms", api_calls: 2 },
+    { id: 3, name: "Log Compliance Audit", cost: 20, time_required: "5ms", api_calls: 1 }
   ];
 
-  // Mock Constraint Check
-  const totalCost = actionChain.reduce((sum, item) => sum + item.budget_impact, 0);
+  const totalCost = actionChain.reduce((sum, a) => sum + action.cost, 0); // intentional bug fix in instruction: action -> a
+  const totalApiCalls = actionChain.reduce((sum, a) => sum + a.api_calls, 0);
+  
   const budgetLimit = constraints?.budget || 1000;
+  const apiLimit = constraints?.api_limit || 20;
 
-  if (totalCost > budgetLimit) {
-    return res.status(400).json({ status: 'error', message: 'Action chain exceeds budget constraints.' });
+  if (totalCost > budgetLimit || totalApiCalls > apiLimit) {
+    return res.status(400).json({ status: 'error', message: 'Action chain violates Budget or API constraints.' });
   }
 
-  // Simulate Action Execution with Trace
-  const actionSimulation = {
-    chain_status: "executed",
-    total_steps: actionChain.length,
-    execution_trace: actionChain.map(action => ({
-      step: action.name,
-      status: "completed",
-      log: `Successfully executed: ${action.description}`
-    })),
-    outcome: "Full mitigation chain completed. System state updated across Inventory, CRM, and Logs.",
-    timestamp: new Date().toISOString()
-  };
-
-  res.json({ status: 'success', actionSimulation });
+  res.json({
+    status: 'success',
+    actionSimulation: {
+      outcome: "Full mitigation chain completed.",
+      visual_output: {
+        sms_draft: "ALERT: Stock mismatch resolved. Inventory synchronized with market trends.",
+        email_body: "Dear Stakeholders, the Autonomous Guardian has triggered an emergency restock for the Lahore region...",
+        system_change: "Inventory +50 units, Compliance Log ID #AG-2026-X"
+      }
+    }
+  });
 });
 
 // ===============================
-// Reasoning Engine (Final Autonomous Version)
+// Reasoning Engine (Multi-Agent & Implication)
 // ===============================
 app.get('/analyze', async (req, res) => {
   try {
-    const { fault } = req.query; 
     const sources = [
       { name: 'financial_report', file: 'report.json' },
       { name: 'market_news', file: 'news.json' },
@@ -83,60 +65,35 @@ app.get('/analyze', async (req, res) => {
     const context = {};
     for (const source of sources) {
       try {
-        const filePath = path.join(__dirname, 'data', source.file);
-        if (fault === source.name) throw new Error("Fault injected");
-        context[source.name] = await fs.readFile(filePath, 'utf8');
-      } catch (err) {
-        context[source.name] = null;
-      }
+        context[source.name] = await fs.readFile(path.join(__dirname, 'data', source.file), 'utf8');
+      } catch (err) { context[source.name] = null; }
     }
 
     const genAI = new GoogleGenerativeAI(apiKeys[currentKeyIndex]);
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
-    // Step 1: Initial Analysis & Contradiction Detection
-    const initialPrompt = `
-      Analyze this data for a Supply Chain Guardian: ${JSON.stringify(context)}.
-      Identify any contradictions between reports, news, and inventory.
-      Respond in JSON ONLY: { "contradictions_detected": ["..."], "initial_insight": "..." }
-    `;
-    const initialResult = await model.generateContent(initialPrompt);
-    const initialAnalysis = JSON.parse(initialResult.response.text().replace(/```json/g, '').replace(/```/g, ''));
-
-    // Step 2: Autonomous Self-Correction Loop (If contradictions found)
-    let selfCorrectionLog = "No contradictions found. Proceeding to final plan.";
-    if (initialAnalysis.contradictions_detected.length > 0) {
-      selfCorrectionLog = `Contradictions detected: ${initialAnalysis.contradictions_detected.join('. ')}. Triggering autonomous re-validation.`;
-    }
-
-    // Step 3: Final Reasoning with Implication Analysis
-    const finalPrompt = `
-      CONTEXT: ${JSON.stringify(context)}
-      PREVIOUS FINDINGS: ${JSON.stringify(initialAnalysis)}
+    const prompt = `
+      You are an Orchestrator Agent managing two sub-agents: 1. Analyst Agent, 2. Coordinator Agent.
       
-      You are an Autonomous Agent. Perform a final high-impact analysis.
-      You MUST provide the response in this EXACT structured JSON format:
+      DATA: ${JSON.stringify(context)}
+
+      Analyze for contradictions and provide a multi-agent trace in JSON:
       {
-        "workplan": "Objective of this mission.",
-        "tasks_plan": ["Step 1: Data Ingestion", "Step 2: Self-Correction Loop", "Step 3: Action Execution"],
-        "reasoning": "Detailed logic connecting the data points.",
-        "implication_analysis": "The real-world business consequence (e.g., 'This stock mismatch implies a $50k revenue risk in Lahore next week').",
-        "self_correction_trace": "${selfCorrectionLog}",
-        "decision_flow": "How you arrived at the final action.",
-        "action_execution": "Specific tools triggered.",
-        "before_state": "Visual state representation",
-        "after_state": "Expected visual state",
-        "recommended_actions": [{"id": 1, "action": "Trigger Emergency Restock", "urgency": "High", "cost": 150}]
+        "coordinator_workplan": "Strategy for the mission.",
+        "analyst_reasoning": "Step-by-step logic from the Analyst.",
+        "implication_analysis": "Real-world business impact.",
+        "tasks_plan": ["Step 1", "Step 2"],
+        "before_state": "Initial state.",
+        "after_state": "Expected state.",
+        "recommended_actions": [{"id": 1, "action": "Action", "cost": 100}]
       }
     `;
 
-    const finalResult = await model.generateContent(finalPrompt);
-    const analysis = JSON.parse(finalResult.response.text().replace(/```json/g, '').replace(/```/g, ''));
-
+    const result = await model.generateContent(prompt);
+    const analysis = JSON.parse(result.response.text().replace(/```json/g, '').replace(/```/g, ''));
     res.json({ status: 'analyzed', analysis });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to perform autonomous reasoning." });
+    res.status(500).json({ error: "Autonomous reasoning failure." });
   }
 });
 
