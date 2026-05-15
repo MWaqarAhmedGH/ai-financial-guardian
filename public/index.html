@@ -2,25 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Autonomous Agent Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js');
-        }
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Financial Guardian Agent</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
-    <h1>Autonomous Content-to-Action Agent</h1>
+    <h1>Autonomous Agent: Supply Chain Guardian</h1>
     <div id="controls">
-        <button id="analyzeBtn">Analyze Data Streams</button>
+        <button id="analyzeBtn">Run Autonomous Analysis</button>
     </div>
+    
     <div id="dashboard">
-        <div id="insight"></div>
-        <div id="actions"></div>
-        <div id="logs"></div>
+        <div id="logs" class="log-box">
+            <h3>System Logs</h3>
+            <p>Ready for command...</p>
+        </div>
+        <div id="visualizer">
+            <div id="insight"></div>
+            <div id="actions"></div>
+        </div>
     </div>
-    <script src="script.js"></script>
+
+    <script src="/script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log("SW error", err));
+            });
+        }
+    </script>
 </body>
 </html>

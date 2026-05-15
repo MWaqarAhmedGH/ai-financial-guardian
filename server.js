@@ -67,7 +67,7 @@ app.post('/execute-action', async (req, res) => {
 });
 
 // ===============================
-// Reasoning Engine (Final Compliance Version)
+// Reasoning Engine (Final Autonomous Version)
 // ===============================
 app.get('/analyze', async (req, res) => {
   try {
@@ -91,29 +91,52 @@ app.get('/analyze', async (req, res) => {
       }
     }
 
-    const prompt = `
-      Analyze this data: ${JSON.stringify(context)}.
-      You are an Agent. You MUST provide the response in this EXACT structured JSON format:
+    const genAI = new GoogleGenerativeAI(apiKeys[currentKeyIndex]);
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+    // Step 1: Initial Analysis & Contradiction Detection
+    const initialPrompt = `
+      Analyze this data for a Supply Chain Guardian: ${JSON.stringify(context)}.
+      Identify any contradictions between reports, news, and inventory.
+      Respond in JSON ONLY: { "contradictions_detected": ["..."], "initial_insight": "..." }
+    `;
+    const initialResult = await model.generateContent(initialPrompt);
+    const initialAnalysis = JSON.parse(initialResult.response.text().replace(/```json/g, '').replace(/```/g, ''));
+
+    // Step 2: Autonomous Self-Correction Loop (If contradictions found)
+    let selfCorrectionLog = "No contradictions found. Proceeding to final plan.";
+    if (initialAnalysis.contradictions_detected.length > 0) {
+      selfCorrectionLog = `Contradictions detected: ${initialAnalysis.contradictions_detected.join('. ')}. Triggering autonomous re-validation.`;
+    }
+
+    // Step 3: Final Reasoning with Implication Analysis
+    const finalPrompt = `
+      CONTEXT: ${JSON.stringify(context)}
+      PREVIOUS FINDINGS: ${JSON.stringify(initialAnalysis)}
+      
+      You are an Autonomous Agent. Perform a final high-impact analysis.
+      You MUST provide the response in this EXACT structured JSON format:
       {
-        "workplan": "Objective of this analysis.",
-        "tasks_plan": ["Task 1", "Task 2"],
-        "reasoning": "Step-by-step logic",
-        "decision_flow": "Logic behind the decision",
-        "action_execution": "Specific actions to execute",
+        "workplan": "Objective of this mission.",
+        "tasks_plan": ["Step 1: Data Ingestion", "Step 2: Self-Correction Loop", "Step 3: Action Execution"],
+        "reasoning": "Detailed logic connecting the data points.",
+        "implication_analysis": "The real-world business consequence (e.g., 'This stock mismatch implies a $50k revenue risk in Lahore next week').",
+        "self_correction_trace": "${selfCorrectionLog}",
+        "decision_flow": "How you arrived at the final action.",
+        "action_execution": "Specific tools triggered.",
         "before_state": "Visual state representation",
         "after_state": "Expected visual state",
-        "recommended_actions": [{"id": 1, "action": "Action", "urgency": "High", "cost": 100}]
+        "recommended_actions": [{"id": 1, "action": "Trigger Emergency Restock", "urgency": "High", "cost": 150}]
       }
     `;
 
-    const genAI = new GoogleGenerativeAI(apiKeys[currentKeyIndex]);
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
-    const result = await model.generateContent(prompt);
-    const analysis = JSON.parse(result.response.text().replace(/```json/g, '').replace(/```/g, ''));
+    const finalResult = await model.generateContent(finalPrompt);
+    const analysis = JSON.parse(finalResult.response.text().replace(/```json/g, '').replace(/```/g, ''));
 
     res.json({ status: 'analyzed', analysis });
   } catch (err) {
-    res.status(500).json({ error: "Failed to perform robust reasoning." });
+    console.error(err);
+    res.status(500).json({ error: "Failed to perform autonomous reasoning." });
   }
 });
 

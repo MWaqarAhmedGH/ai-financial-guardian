@@ -8,16 +8,16 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
     if (result.status === 'analyzed') {
         const { analysis } = result;
         
-        // Visualize the compliant trace including the 'Planning Phase'
+        // Visualize the compliant trace with Implication & Self-Correction
         document.getElementById('insight').innerHTML = `
-            <h3>Agent Trace (PDF Compliant):</h3>
+            <h3>Agent Trace (Autonomous Evidence):</h3>
             <div class="log-box">
-                <p><strong>Planning Trace:</strong> ${analysis.planning_trace}</p>
                 <p><strong>Workplan:</strong> ${analysis.workplan}</p>
                 <p><strong>Tasks:</strong> ${analysis.tasks_plan.join(', ')}</p>
+                <p><strong>Self-Correction Trace:</strong> ${analysis.self_correction_trace}</p>
                 <p><strong>Reasoning:</strong> ${analysis.reasoning}</p>
+                <p><strong>Implication:</strong> ${analysis.implication_analysis}</p>
                 <p><strong>Decision Flow:</strong> ${analysis.decision_flow}</p>
-                <p><strong>Execution Plan:</strong> ${analysis.action_execution}</p>
             </div>
             <div class="state-box">
                 <p><strong>Before Action State:</strong> ${analysis.before_state}</p>
@@ -25,19 +25,14 @@ document.getElementById('analyzeBtn').addEventListener('click', async () => {
             </div>
         `;
 
-        // Handle Fallback / Human-in-the-Loop requirement
         const actionsDiv = document.getElementById('actions');
-        if (analysis.fallback_needed) {
-            actionsDiv.innerHTML = "<h3>⚠️ Clarification Required:</h3><p>Some data sources are missing. Please provide missing info to proceed safely.</p>";
-        } else {
-            actionsDiv.innerHTML = "<h3>Recommended Actions:</h3>";
-            analysis.recommended_actions.forEach(act => {
-                const btn = document.createElement('button');
-                btn.innerText = `${act.action} (Cost: $${act.cost})`;
-                btn.onclick = () => executeAction(act.id, analysis.after_state);
-                actionsDiv.appendChild(btn);
-            });
-        }
+        actionsDiv.innerHTML = "<h3>Recommended Actions:</h3>";
+        analysis.recommended_actions.forEach(act => {
+            const btn = document.createElement('button');
+            btn.innerText = `${act.action} (Cost: $${act.cost})`;
+            btn.onclick = () => executeAction(act.id, analysis.after_state);
+            actionsDiv.appendChild(btn);
+        });
     }
 });
 
