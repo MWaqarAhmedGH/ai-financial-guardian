@@ -1,7 +1,6 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
-const fs = require('fs').promises;
 
 const app = express();
 
@@ -10,97 +9,9 @@ const app = express();
 // ===============================
 app.use(express.json({ limit: '10mb' }));
 
-// Serve static files
+// Serve static files from the 'public' directory
 const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
-
-// Explicit route for the homepage
-app.get('/', (req, res) => {
-  res.sendFile(path.join(publicPath, 'index.html'));
-});
-
-// ===============================
-// Action Execution Engine (Constraint-Hardened)
-// ===============================
-app.post('/execute-action', async (req, res) => {
-  const { actionId, constraints } = req.body;
-
-  const actionChain = [
-    { id: 1, name: "Update Inventory", cost: 100, time_required: "2ms", api_calls: 5 },
-    { id: 2, name: "Draft Stakeholder SMS", cost: 50, time_required: "1ms", api_calls: 2 },
-    { id: 3, name: "Log Compliance Audit", cost: 20, time_required: "5ms", api_calls: 1 }
-  ];
-
-  const totalCost = actionChain.reduce((sum, a) => sum + action.cost, 0); // intentional bug fix in instruction: action -> a
-  const totalApiCalls = actionChain.reduce((sum, a) => sum + a.api_calls, 0);
-  
-  const budgetLimit = constraints?.budget || 1000;
-  const apiLimit = constraints?.api_limit || 20;
-
-  if (totalCost > budgetLimit || totalApiCalls > apiLimit) {
-    return res.status(400).json({ status: 'error', message: 'Action chain violates Budget or API constraints.' });
-  }
-
-  res.json({
-    status: 'success',
-    actionSimulation: {
-      outcome: "Full mitigation chain completed.",
-      visual_output: {
-        sms_draft: "ALERT: Stock mismatch resolved. Inventory synchronized with market trends.",
-        email_body: "Dear Stakeholders, the Autonomous Guardian has triggered an emergency restock for the Lahore region...",
-        system_change: "Inventory +50 units, Compliance Log ID #AG-2026-X"
-      }
-    }
-  });
-});
-
-// ===============================
-// Reasoning Engine (Multi-Agent & Implication)
-// ===============================
-app.get('/analyze', async (req, res) => {
-  try {
-    const sources = [
-      { name: 'financial_report', file: 'report.json' },
-      { name: 'market_news', file: 'news.json' },
-      { name: 'inventory_data', file: 'inventory.csv' },
-      { name: 'forecast_table', file: 'table.json' },
-      { name: 'live_feed', file: 'feed.json' }
-    ];
-
-    const context = {};
-    for (const source of sources) {
-      try {
-        context[source.name] = await fs.readFile(path.join(__dirname, 'data', source.file), 'utf8');
-      } catch (err) { context[source.name] = null; }
-    }
-
-    const genAI = new GoogleGenerativeAI(apiKeys[currentKeyIndex]);
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
-
-    const prompt = `
-      You are an Orchestrator Agent managing two sub-agents: 1. Analyst Agent, 2. Coordinator Agent.
-      
-      DATA: ${JSON.stringify(context)}
-
-      Analyze for contradictions and provide a multi-agent trace in JSON:
-      {
-        "coordinator_workplan": "Strategy for the mission.",
-        "analyst_reasoning": "Step-by-step logic from the Analyst.",
-        "implication_analysis": "Real-world business impact.",
-        "tasks_plan": ["Step 1", "Step 2"],
-        "before_state": "Initial state.",
-        "after_state": "Expected state.",
-        "recommended_actions": [{"id": 1, "action": "Action", "cost": 100}]
-      }
-    `;
-
-    const result = await model.generateContent(prompt);
-    const analysis = JSON.parse(result.response.text().replace(/```json/g, '').replace(/```/g, ''));
-    res.json({ status: 'analyzed', analysis });
-  } catch (err) {
-    res.status(500).json({ error: "Autonomous reasoning failure." });
-  }
-});
 
 // ===============================
 // Load API Keys from Environment
@@ -144,14 +55,14 @@ JSON Structure:
     "Step 3: Calculating Risk Score (0-100)...",
     "Step 4: Mapping autonomous defense plan..."
   ],
-  "fia_complaint_draft": "Detailed FIA Cybercrime complaint draft. MUST be provided if the input is related to a scam, fraud, or suspicious lottery."
+  "fia_complaint_draft": "Detailed FIA Cybercrime complaint draft. MUST be provided if scam_score > 30."
 }
 
 Guidelines:
 - Language: Simple English + Urdu mix (Hinglish).
 - Scam Score: Always start with "⚠️ Scam Risk Score: X%".
 - Tone: Professional and protective.
-- PROACTIVE DEFENSE: If the user asks about JazzCash lotteries, WhatsApp prizes, or any suspicious message, you MUST categorize it as a scam (scam_score > 60) and include "fia_report" in recommended_actions.
+- Proactiveness: If you detect even a slight risk (scam_score > 30), you MUST provide a full fia_complaint_draft.
 - If it's a budget query, focus on the 50/30/20 rule and set scam_score to 0.
 `;
 
