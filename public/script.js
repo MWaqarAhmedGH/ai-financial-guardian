@@ -132,7 +132,17 @@ if (SpeechRecognition) {
 }
 
 function formatMessage(text) {
-    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    if (!text) return '';
+    // Replace double newlines first, then single newlines with <br>
+    // Also handle literal "\n" strings that might come from JSON
+    let formatted = text
+        .replace(/\\n/g, '<br>')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/•/g, '•') // Ensure bullet remains
+        .replace(/^\*/gm, '•'); // Convert markdown bullets to dots
+    return formatted;
 }
 
 function speakText(text) {
