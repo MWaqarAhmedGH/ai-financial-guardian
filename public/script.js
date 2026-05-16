@@ -20,7 +20,7 @@ const closeTraceBtn = document.getElementById('close-trace');
 const traceLogs = document.getElementById('trace-logs');
 
 let isVoiceMode = false;
-let currentAgentTrace = [];
+let currentAgentTrace = null;
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -41,9 +41,22 @@ toggleTraceBtn.onclick = () => {
 closeTraceBtn.onclick = () => traceContainer.style.display = 'none';
 
 function renderTrace() {
-    traceLogs.innerHTML = currentAgentTrace.map(step => `
-        <div class="trace-step">${step}</div>
-    `).join('');
+    if (!currentAgentTrace) {
+        traceLogs.innerHTML = '<div class="trace-step">No trace data available.</div>';
+        return;
+    }
+
+    let html = '';
+    if (typeof currentAgentTrace === 'object' && !Array.isArray(currentAgentTrace)) {
+        html += `<div class="trace-section"><strong>🎯 Workplan:</strong> ${currentAgentTrace.workplan}</div>`;
+        html += `<div class="trace-section"><strong>📋 Tasks:</strong><ul>${currentAgentTrace.tasks.map(t => `<li>${t}</li>`).join('')}</ul></div>`;
+        html += `<div class="trace-section"><strong>🤔 Reasoning:</strong> ${currentAgentTrace.reasoning}</div>`;
+        html += `<div class="trace-section"><strong>🔀 Decision Flow:</strong> ${currentAgentTrace.decision_flow}</div>`;
+        html += `<div class="trace-section"><strong>⚡ Action Execution:</strong> ${currentAgentTrace.action_execution}</div>`;
+    } else if (Array.isArray(currentAgentTrace)) {
+        html = currentAgentTrace.map(step => `<div class="trace-step">${step}</div>`).join('');
+    }
+    traceLogs.innerHTML = html;
 }
 
 // Load History on Startup
@@ -157,9 +170,24 @@ function appendMessage(text, sender, isImage = false, shouldSpeak = false, shoul
         listenBtn.onclick = () => speakText(text);
         msgDiv.appendChild(listenBtn);
 
+        // System State Change Visualization
+        if (structuredData && structuredData.system_state_change) {
+            const stateDiv = document.createElement('div');
+            stateDiv.classList.add('system-state');
+            stateDiv.innerHTML = `
+                <div class="state-box">
+                    <strong>Before:</strong> <span>${structuredData.system_state_change.before}</span>
+                </div>
+                <div class="state-arrow">⬇️</div>
+                <div class="state-box">
+                    <strong>After:</strong> <span>${structuredData.system_state_change.after}</span>
+                </div>
+            `;
+            msgDiv.appendChild(stateDiv);
+        }
+
         // Action Center for Challenge 1
         if (structuredData && structuredData.recommended_actions && structuredData.recommended_actions.length > 0) {
-            console.log("Rendering recommended actions:", structuredData.recommended_actions);
             const actionCenter = document.createElement('div');
             actionCenter.classList.add('action-center');
             
@@ -171,8 +199,6 @@ function appendMessage(text, sender, isImage = false, shouldSpeak = false, shoul
                 actionCenter.appendChild(btn);
             });
             msgDiv.appendChild(actionCenter);
-        } else {
-            console.log("No recommended actions to render or structuredData is missing.");
         }
 
         if (shouldSpeak) speakText(text);
@@ -186,6 +212,8 @@ function appendMessage(text, sender, isImage = false, shouldSpeak = false, shoul
 }
 
 async function handleActionSimulation(action, data, btnElement) {
+    if (btnElement.classList.contains('success')) return;
+
     btnElement.classList.add('executing');
     btnElement.innerHTML = `<span>⏳</span> Simulating...`;
 
@@ -196,17 +224,25 @@ async function handleActionSimulation(action, data, btnElement) {
     btnElement.classList.add('success');
     btnElement.innerHTML = `<span>✅</span> ${action.label} Done`;
 
+    const outcomeDiv = document.createElement('div');
+    outcomeDiv.classList.add('outcome-log');
+
     if (action.id === 'fia_report' && data.fia_complaint_draft) {
-        const draftDiv = document.createElement('div');
-        draftDiv.classList.add('fia-modal-content');
-        draftDiv.innerHTML = `<strong>OFFICIAL FIA COMPLAINT DRAFT:</strong><br><br>${data.fia_complaint_draft}`;
-        btnElement.parentElement.parentElement.appendChild(draftDiv);
+        outcomeDiv.innerHTML = `<strong>OFFICIAL FIA COMPLAINT DRAFT:</strong><br><br>${data.fia_complaint_draft}`;
     } else if (action.id === 'bank_block') {
-        alert("SIMULATION: Request sent to Bank API. Account is now PROTECTED and transactions are paused.");
+        outcomeDiv.innerHTML = `<strong>SIMULATION:</strong> Request sent to Bank API. Account is now PROTECTED and transactions are paused.`;
     } else if (action.id === 'family_alert') {
         const alertText = `🚨 Alert: ${data.insight}. Humne AI Guardian use kiya hai financial safety ke liye.`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(alertText)}`, '_blank');
+        outcomeDiv.innerHTML = `<strong>SIMULATION:</strong> WhatsApp Alert ready. <a href="https://wa.me/?text=${encodeURIComponent(alertText)}" target="_blank">Click to send</a>`;
+    } else if (action.id === 'restock_order') {
+        outcomeDiv.innerHTML = `<strong>SIMULATION:</strong> Purchase Order SKU-101 generated. Supplier notified via EDI. Inventory will update in 24h.`;
+    } else if (action.id === 'logistics_reroute') {
+        outcomeDiv.innerHTML = `<strong>SIMULATION:</strong> Logistics route changed to Alternate Highway 5. Estimated delay reduced by 4 hours.`;
+    } else {
+        outcomeDiv.innerHTML = `<strong>SIMULATION:</strong> ${action.label} executed successfully in mock environment.`;
     }
+    
+    btnElement.parentElement.parentElement.appendChild(outcomeDiv);
 }
 
 async function sendMessage(text = null, imageData = null) {
@@ -240,6 +276,18 @@ async function sendMessage(text = null, imageData = null) {
         if (data.display_text) {
             currentAgentTrace = data.agent_trace || [];
             appendMessage(data.display_text, 'ai', false, isVoiceMode, true, data);
+            
+            // Update Dashboard Metrics (Step 2)
+            if (data.system_state_change && data.system_state_change.metrics_update) {
+                const metrics = data.system_state_change.metrics_update;
+                if (metrics.stock) document.getElementById('stat-stock').innerText = metrics.stock;
+                if (metrics.risk) {
+                    const riskElem = document.getElementById('stat-risk');
+                    riskElem.innerText = metrics.risk > 70 ? 'High' : metrics.risk > 30 ? 'Medium' : 'Low';
+                    riskElem.style.color = metrics.risk > 70 ? '#FF4D6D' : metrics.risk > 30 ? '#FFC107' : '#00E5FF';
+                }
+                if (metrics.budget) document.getElementById('stat-budget').innerText = metrics.budget;
+            }
             
             // Auto-open trace once to show logic if it's a first time
             if (currentAgentTrace.length > 0) {
