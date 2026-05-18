@@ -1,5 +1,21 @@
-item_id,region,category,stock_level,reorder_point,status
-SKU-101,Lahore,Electronics,12,50,CRITICAL
-SKU-102,Karachi,Electronics,85,50,NORMAL
-SKU-103,Islamabad,Essentials,120,40,EXCESS
-SKU-104,Lahore,Logistics,5,10,LOW
+SKU,product_name,category,stock_quantity,unit_price_pkr,supplier
+SKU-101,Samsung 55" 4K Smart TV,Electronics,12,89999,Samsung Pakistan
+SKU-102,Haier 1.5 Ton Inverter AC,Home Appliances,8,95000,Haier Pakistan
+SKU-103,Orient 16 Cubic Feet Refrigerator,Home Appliances,5,62500,Orient Electronics
+SKU-104,JBL Bluetooth Speaker Flip 6,Electronics,34,18500,TechZone Distributors
+SKU-105,Anker 65W USB-C Charger,Accessories,67,3200,Digital World LHR
+SKU-106,Apple iPhone 15 128GB,Mobile Phones,3,299999,iStore Pakistan
+SKU-107,Samsung Galaxy A35 256GB,Mobile Phones,15,82000,Samsung Pakistan
+SKU-108,Dawlance Washing Machine 7Kg,Home Appliances,9,48000,Dawlance Pakistan
+SKU-109,TP-Link WiFi 6 Router AX3000,Networking,22,14500,IT Bazaar KHI
+SKU-110,Lenovo IdeaPad 5 Core i5,Laptops,6,135000,Lenovo Pakistan
+SKU-111,HP Ink Tank 415 Printer,Peripherals,18,28000,HP Pakistan
+SKU-112,Xiaomi Redmi Note 13 Pro,Mobile Phones,29,72000,Xiaomi Pakistan
+SKU-113,Sony PlayStation 5 Disc Edition,Gaming,2,175000,Games Arena LHR
+SKU-114,Canon EOS R50 Camera Kit,Photography,4,220000,Canon Pakistan
+SKU-115,Philips LED Bulb 12W Pack of 6,Lighting,150,1800,Philips Pakistan
+SKU-116,Gree 2 Ton Floor Standing AC,Home Appliances,3,145000,Gree Pakistan
+SKU-117,Dell 27 inch FHD Monitor,Peripherals,11,42000,Dell Pakistan
+SKU-118,Kingston 1TB SSD,Storage,45,16500,Tech Supplies ISB
+SKU-119,Audionic Wireless Headphones,Accessories,38,7500,Audionic Pakistan
+SKU-120,PEL 14 Cubic Feet Deep Freezer,Home Appliances,7,55000,PEL Pakistan

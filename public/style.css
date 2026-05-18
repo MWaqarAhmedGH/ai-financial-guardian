@@ -510,6 +510,76 @@ strong { color: var(--accent-blue); }
 .report-btn { display: inline-block; margin-top: 10px; color: #FF4D6D; border: 1px solid #FF4D6D; padding: 5px 10px; border-radius: 8px; font-size: 0.8rem; text-decoration: none; }
 .listen-btn { background: rgba(255,255,255,0.05); color: #fff; padding: 4px 8px; border-radius: 5px; font-size: 0.7rem; margin-top: 5px; margin-right: 5px; }
 
+/* Scam Score Badge */
+.scam-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.scam-safe {
+    background: rgba(0, 212, 170, 0.12);
+    border: 1px solid #00d4aa;
+    color: #00d4aa;
+}
+
+.scam-warning {
+    background: rgba(255, 193, 7, 0.12);
+    border: 1px solid #FFC107;
+    color: #FFC107;
+}
+
+.scam-danger {
+    background: rgba(255, 77, 109, 0.15);
+    border: 1px solid #FF4D6D;
+    color: #FF4D6D;
+    animation: dangerPulse 1.5s infinite;
+}
+
+@keyframes dangerPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 109, 0); }
+    50% { box-shadow: 0 0 0 4px rgba(255, 77, 109, 0.2); }
+}
+
+/* Insight & Impact Panel */
+.insight-panel {
+    margin-top: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.insight-row {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 14px;
+    gap: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.insight-row:last-child { border-bottom: none; }
+
+.insight-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--accent-blue);
+}
+
+.insight-value {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
 /* Challenge 1: System State Visualization */
 .system-state {
     margin-top: 15px;
@@ -587,4 +657,146 @@ strong { color: var(--accent-blue); }
 .outcome-log a {
     color: var(--accent-blue);
     text-decoration: underline;
+}
+
+/* =========================================
+   MODE TOGGLE BUTTON
+   ========================================= */
+.mode-toggle-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mode-toggle-btn.antigravity-active {
+    background: rgba(0, 212, 170, 0.12);
+    border-color: #00d4aa;
+    color: #00d4aa;
+    box-shadow: 0 0 12px rgba(0, 212, 170, 0.25);
+    animation: agPulse 2.5s infinite;
+}
+
+@keyframes agPulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(0, 212, 170, 0.2); }
+    50%       { box-shadow: 0 0 20px rgba(0, 212, 170, 0.5); }
+}
+
+/* =========================================
+   ANTIGRAVITY RESPONSE BUBBLE
+   ========================================= */
+.ag-response {
+    border: 1px solid rgba(0, 212, 170, 0.25) !important;
+    background: linear-gradient(135deg, #1a2540, #12203a) !important;
+}
+
+/* Pipeline Header */
+.ag-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 212, 170, 0.15);
+}
+
+.ag-badge {
+    background: rgba(0, 212, 170, 0.15);
+    border: 1px solid #00d4aa;
+    color: #00d4aa;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.ag-meta {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+}
+
+/* Agent Timeline */
+.ag-timeline {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.ag-agent-card {
+    flex: 1;
+    min-width: 90px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: default;
+    transition: transform 0.2s ease;
+    border-left-width: 3px;
+}
+
+.ag-agent-card:hover { transform: translateY(-2px); }
+
+.ag-agent-name {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+}
+
+.ag-agent-duration {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+}
+
+/* Main Analysis Text */
+.ag-main-text {
+    margin-bottom: 14px;
+    line-height: 1.7;
+    font-size: 0.93rem;
+}
+
+/* Execution Log */
+.ag-execution {
+    margin-top: 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 12px 14px;
+    border: 1px solid rgba(0, 212, 170, 0.1);
+}
+
+.ag-exec-header {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #00d4aa;
+    margin-bottom: 10px;
+}
+
+.ag-exec-step {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    font-family: 'Courier New', monospace;
+    line-height: 1.5;
+}
+
+.ag-exec-step:last-child { border-bottom: none; }
+
+.ag-exec-step::before {
+    content: "→ ";
+    color: #00d4aa;
+    font-weight: bold;
 }

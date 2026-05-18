@@ -21,6 +21,9 @@ const traceLogs = document.getElementById('trace-logs');
 
 let isVoiceMode = false;
 let currentAgentTrace = null;
+let antigravityMode = false;
+
+const modeToggleBtn = document.getElementById('mode-toggle-btn');
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -39,6 +42,26 @@ toggleTraceBtn.onclick = () => {
     }
 };
 closeTraceBtn.onclick = () => traceContainer.style.display = 'none';
+
+modeToggleBtn.addEventListener('click', () => {
+    antigravityMode = !antigravityMode;
+    modeToggleBtn.textContent = antigravityMode ? '⚡ Antigravity' : '💬 Standard';
+    modeToggleBtn.classList.toggle('antigravity-active', antigravityMode);
+    document.querySelector('header p').textContent = antigravityMode
+        ? '⚡ Google Antigravity Active'
+        : 'Pakistani Financial Safety Assistant';
+    // Check status when switching to Antigravity mode
+    if (antigravityMode) {
+        fetch('/api/antigravity-status').then(r => r.json()).then(s => {
+            if (!s.configured) {
+                const warn = document.createElement('div');
+                warn.classList.add('message', 'ai-message');
+                warn.innerHTML = `⚠️ <strong>Antigravity Mode:</strong> GOOGLE_CLOUD_PROJECT not set in environment. Requests will return a configuration error. Add it to your .env file.`;
+                document.getElementById('chat-window').appendChild(warn);
+            }
+        }).catch(() => {});
+    }
+});
 
 function renderTrace() {
     if (!currentAgentTrace) {
@@ -173,7 +196,38 @@ function appendMessage(text, sender, isImage = false, shouldSpeak = false, shoul
         msgDiv.appendChild(img);
     } else if (sender === 'ai') {
         msgDiv.innerHTML = formatMessage(text);
-        
+
+        // Scam Score Badge
+        if (structuredData && typeof structuredData.scam_score === 'number') {
+            const score = structuredData.scam_score;
+            const badge = document.createElement('div');
+            badge.classList.add('scam-badge');
+            if (score <= 30) {
+                badge.classList.add('scam-safe');
+                badge.innerHTML = `🛡️ Scam Risk: <strong>${score}%</strong> — Safe`;
+            } else if (score <= 60) {
+                badge.classList.add('scam-warning');
+                badge.innerHTML = `⚠️ Scam Risk: <strong>${score}%</strong> — Suspicious`;
+            } else {
+                badge.classList.add('scam-danger');
+                badge.innerHTML = `🚨 Scam Risk: <strong>${score}%</strong> — HIGH DANGER`;
+            }
+            msgDiv.appendChild(badge);
+        }
+
+        // Insight & Impact Panel
+        if (structuredData && (structuredData.insight || structuredData.impact)) {
+            const infoPanel = document.createElement('div');
+            infoPanel.classList.add('insight-panel');
+            if (structuredData.insight) {
+                infoPanel.innerHTML += `<div class="insight-row"><span class="insight-label">🔍 Insight</span><span class="insight-value">${structuredData.insight}</span></div>`;
+            }
+            if (structuredData.impact) {
+                infoPanel.innerHTML += `<div class="insight-row"><span class="insight-label">💥 Impact</span><span class="insight-value">${structuredData.impact}</span></div>`;
+            }
+            msgDiv.appendChild(infoPanel);
+        }
+
         const listenBtn = document.createElement('button');
         listenBtn.innerHTML = '🔊 Suniye';
         listenBtn.classList.add('listen-btn');
@@ -274,37 +328,56 @@ async function sendMessage(text = null, imageData = null) {
     chatWindow.scrollTop = chatWindow.scrollHeight;
 
     try {
-        const response = await fetch('/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: message || "Analyze this content.", image: imageData }),
-        });
-        
-        const data = await response.json();
-        chatWindow.removeChild(loadingDiv);
-        
-        if (data.display_text) {
-            currentAgentTrace = data.agent_trace || [];
-            appendMessage(data.display_text, 'ai', false, isVoiceMode, true, data);
-            
-            // Update Dashboard Metrics (Step 2)
-            if (data.system_state_change && data.system_state_change.metrics_update) {
-                const metrics = data.system_state_change.metrics_update;
-                if (metrics.stock) document.getElementById('stat-stock').innerText = metrics.stock;
-                if (metrics.risk) {
-                    const riskElem = document.getElementById('stat-risk');
-                    riskElem.innerText = metrics.risk > 70 ? 'High' : metrics.risk > 30 ? 'Medium' : 'Low';
-                    riskElem.style.color = metrics.risk > 70 ? '#FF4D6D' : metrics.risk > 30 ? '#FFC107' : '#00E5FF';
+        if (antigravityMode) {
+            // ── Google Antigravity (Vertex AI) 5-Agent Pipeline ──
+            const response = await fetch('/api/antigravity-analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message || 'Analyze this content.', image: imageData }),
+            });
+            const data = await response.json();
+            chatWindow.removeChild(loadingDiv);
+
+            if (data.final_output) {
+                renderAntigravityResponse(data);
+            } else if (data.error) {
+                appendMessage(`⚡ Antigravity Error: ${data.error}`, 'ai');
+                if (data.fallback_available) {
+                    appendMessage('ℹ️ Tip: Configure GOOGLE_CLOUD_PROJECT in .env and run gcloud auth application-default login to enable Antigravity mode.', 'ai');
                 }
-                if (metrics.budget) document.getElementById('stat-budget').innerText = metrics.budget;
             }
-            
-            // Auto-open trace once to show logic if it's a first time
-            if (currentAgentTrace.length > 0) {
-                toggleTraceBtn.classList.add('pulse');
+        } else {
+            // ── Standard Gemini Mode ──
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message || "Analyze this content.", image: imageData }),
+            });
+
+            const data = await response.json();
+            chatWindow.removeChild(loadingDiv);
+
+            if (data.display_text) {
+                currentAgentTrace = data.agent_trace || [];
+                appendMessage(data.display_text, 'ai', false, isVoiceMode, true, data);
+
+                if (data.system_state_change && data.system_state_change.metrics_update) {
+                    const metrics = data.system_state_change.metrics_update;
+                    if (metrics.stock) document.getElementById('stat-stock').innerText = metrics.stock;
+                    if (metrics.risk) {
+                        const riskElem = document.getElementById('stat-risk');
+                        riskElem.innerText = metrics.risk > 70 ? 'High' : metrics.risk > 30 ? 'Medium' : 'Low';
+                        riskElem.style.color = metrics.risk > 70 ? '#FF4D6D' : metrics.risk > 30 ? '#FFC107' : '#00E5FF';
+                    }
+                    if (metrics.budget) document.getElementById('stat-budget').innerText = metrics.budget;
+                }
+
+                if (currentAgentTrace.length > 0) {
+                    toggleTraceBtn.classList.add('pulse');
+                }
+            } else if (data.error) {
+                appendMessage(data.error, 'ai');
             }
-        } else if (data.error) {
-            appendMessage(data.error, 'ai');
         }
     } catch (error) {
         if (chatWindow.contains(loadingDiv)) chatWindow.removeChild(loadingDiv);
@@ -327,6 +400,152 @@ async function clearChat() {
     } catch (error) {
         console.error('Error clearing chat:', error);
     }
+}
+
+function renderAntigravityResponse(data) {
+    const final = data.final_output;
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('message', 'ai-message', 'ag-response');
+
+    // ── Pipeline Header ──────────────────────────────────────
+    const header = document.createElement('div');
+    header.classList.add('ag-header');
+    header.innerHTML = `
+        <span class="ag-badge">⚡ Google Antigravity</span>
+        <span class="ag-meta">ID: ${data.pipeline_id.substring(0, 8)}… · ${data.total_duration_ms}ms · 5 Agents</span>
+    `;
+    msgDiv.appendChild(header);
+
+    // ── Agent Timeline ───────────────────────────────────────
+    const agentColors = ['#00d4aa', '#00b8ff', '#a78bfa', '#f59e0b', '#f43f5e'];
+    const timeline = document.createElement('div');
+    timeline.classList.add('ag-timeline');
+    data.agents.forEach((agent, i) => {
+        const card = document.createElement('div');
+        card.classList.add('ag-agent-card');
+        card.style.borderColor = agentColors[i] || '#00E5FF';
+        card.innerHTML = `
+            <div class="ag-agent-name" style="color:${agentColors[i]}">${agent.agent_name}</div>
+            <div class="ag-agent-duration">${agent.duration_ms}ms</div>
+        `;
+        card.title = agent.output_summary;
+        timeline.appendChild(card);
+    });
+    msgDiv.appendChild(timeline);
+
+    // ── Main Analysis Text ───────────────────────────────────
+    if (final.display_text) {
+        const textDiv = document.createElement('div');
+        textDiv.classList.add('ag-main-text');
+        textDiv.innerHTML = formatMessage(final.display_text);
+        msgDiv.appendChild(textDiv);
+    }
+
+    // ── Scam Risk Badge ──────────────────────────────────────
+    if (typeof final.scam_score === 'number') {
+        const score = final.scam_score;
+        const badge = document.createElement('div');
+        badge.classList.add('scam-badge');
+        if (score <= 30) {
+            badge.classList.add('scam-safe');
+            badge.innerHTML = `🛡️ Scam Risk: <strong>${score}%</strong> — Safe`;
+        } else if (score <= 60) {
+            badge.classList.add('scam-warning');
+            badge.innerHTML = `⚠️ Scam Risk: <strong>${score}%</strong> — Suspicious`;
+        } else {
+            badge.classList.add('scam-danger');
+            badge.innerHTML = `🚨 Scam Risk: <strong>${score}%</strong> — HIGH DANGER`;
+        }
+        msgDiv.appendChild(badge);
+    }
+
+    // ── Insight / Impact / Sectors Panel ────────────────────
+    if (final.insight || final.impact || final.affected_sectors?.length) {
+        const panel = document.createElement('div');
+        panel.classList.add('insight-panel');
+        if (final.insight) panel.innerHTML += `<div class="insight-row"><span class="insight-label">🔍 Insight</span><span class="insight-value">${final.insight}</span></div>`;
+        if (final.impact)  panel.innerHTML += `<div class="insight-row"><span class="insight-label">💥 Impact</span><span class="insight-value">${final.impact}</span></div>`;
+        if (final.affected_sectors?.length) panel.innerHTML += `<div class="insight-row"><span class="insight-label">📊 Sectors</span><span class="insight-value">${final.affected_sectors.join(', ')}</span></div>`;
+        msgDiv.appendChild(panel);
+    }
+
+    // ── Action Chips ─────────────────────────────────────────
+    if (final.actions?.length) {
+        const actionCenter = document.createElement('div');
+        actionCenter.classList.add('action-center');
+        final.actions.slice(0, 4).forEach(action => {
+            const chip = document.createElement('div');
+            chip.classList.add('action-chip');
+            chip.innerHTML = `<span>⚡</span> ${action.title}`;
+            chip.title = `${action.rationale} | Outcome: ${action.expected_outcome}`;
+            chip.onclick = () => {
+                if (chip.classList.contains('success')) return;
+                chip.classList.add('success');
+                chip.innerHTML = `<span>✅</span> ${action.title}`;
+                const log = document.createElement('div');
+                log.classList.add('outcome-log');
+                log.innerHTML = `<strong>${action.title}</strong><br>Expected: ${action.expected_outcome}<br>Priority: ${action.priority} · Timeframe: ${action.timeframe}`;
+                chip.parentElement.parentElement.appendChild(log);
+            };
+            actionCenter.appendChild(chip);
+        });
+        msgDiv.appendChild(actionCenter);
+    }
+
+    // ── Execution Log ────────────────────────────────────────
+    if (final.execution?.execution_log?.length) {
+        const execDiv = document.createElement('div');
+        execDiv.classList.add('ag-execution');
+        const execHeader = document.createElement('div');
+        execHeader.classList.add('ag-exec-header');
+        execHeader.textContent = `⚡ ExecutionAgent — ${final.execution.execution_status || 'Simulated'}`;
+        execDiv.appendChild(execHeader);
+        final.execution.execution_log.forEach(step => {
+            const s = document.createElement('div');
+            s.classList.add('ag-exec-step');
+            s.textContent = step;
+            execDiv.appendChild(s);
+        });
+        // State change visualization
+        if (final.execution.system_state_before && final.execution.system_state_after) {
+            const stateDiv = document.createElement('div');
+            stateDiv.classList.add('system-state');
+            stateDiv.innerHTML = `
+                <div class="state-box"><strong>Before</strong><span>${final.execution.system_state_before.status}</span></div>
+                <div class="state-arrow">⬇️</div>
+                <div class="state-box"><strong>After</strong><span>${final.execution.system_state_after.status}</span></div>
+            `;
+            execDiv.appendChild(stateDiv);
+        }
+        msgDiv.appendChild(execDiv);
+    }
+
+    // ── Listen Button ────────────────────────────────────────
+    const listenBtn = document.createElement('button');
+    listenBtn.innerHTML = '🔊 Suniye';
+    listenBtn.classList.add('listen-btn');
+    listenBtn.onclick = () => speakText(final.display_text || final.insight || '');
+    msgDiv.appendChild(listenBtn);
+
+    chatWindow.appendChild(msgDiv);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+    saveToLocal(final.display_text || final.insight, 'ai', false, data);
+
+    // Update dashboard
+    const scam = final.scam_score ?? 0;
+    const riskElem = document.getElementById('stat-risk');
+    riskElem.innerText = scam > 70 ? 'High' : scam > 30 ? 'Medium' : 'Low';
+    riskElem.style.color = scam > 70 ? '#FF4D6D' : scam > 30 ? '#FFC107' : '#00d4aa';
+
+    // Wire up Agent Trace panel to show pipeline details
+    currentAgentTrace = {
+        workplan: `[Google Antigravity] 5-Agent pipeline executed. Pipeline ID: ${data.pipeline_id}`,
+        tasks: data.agents.map(a => `[${a.agent_name}] ${a.output_summary.substring(0, 120)} (${a.duration_ms}ms)`),
+        reasoning: data.agents[1]?.output?.primary_insight || data.agents[1]?.output_summary || '',
+        decision_flow: 'Input → IngestionAgent → InsightAgent → ImpactAnalystAgent → ActionRecommenderAgent → ExecutionAgent',
+        action_execution: data.agents[4]?.output_summary || ''
+    };
+    toggleTraceBtn.classList.add('pulse');
 }
 
 micBtn.addEventListener('click', () => {

@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
 const fs = require('fs');
+const { randomUUID } = require('crypto');
 
 const app = express();
 
@@ -131,7 +133,7 @@ app.get('/api-status', (req, res) => {
     status: "online",
     keys_found: apiKeys.length,
     environment: process.env.NODE_ENV || 'production',
-    model: 'gemini-flash-latest'
+    model: 'gemini-flash-lite-latest'
   });
 });
 
@@ -161,7 +163,7 @@ app.post('/chat', async (req, res) => {
     try {
       const genAI = new GoogleGenerativeAI(currentKey);
       const model = genAI.getGenerativeModel({
-        model: 'gemini-flash-latest',
+        model: 'gemini-flash-lite-latest',
         systemInstruction: SYSTEM_PROMPT
       });
 
@@ -249,6 +251,275 @@ app.post('/chat', async (req, res) => {
   return res.status(500).json({ 
     error: `AI processing failed. Last Error: ${lastError}` 
   });
+});
+
+// ===============================
+// Vertex AI (Google Antigravity)
+// ===============================
+let vertexAI = null;
+try {
+    const { VertexAI } = require('@google-cloud/vertexai');
+    if (process.env.GOOGLE_CLOUD_PROJECT) {
+        vertexAI = new VertexAI({
+            project: process.env.GOOGLE_CLOUD_PROJECT,
+            location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'
+        });
+        console.log(`[Antigravity] Vertex AI ready → ${process.env.GOOGLE_CLOUD_PROJECT} / ${process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'}`);
+    } else {
+        console.warn('[Antigravity] GOOGLE_CLOUD_PROJECT not set — Antigravity mode disabled.');
+    }
+} catch (err) {
+    console.warn('[Antigravity] SDK unavailable:', err.message);
+}
+
+async function runVertexAgent(agentName, systemInstruction, userPrompt) {
+    const startTime = Date.now();
+
+    const model = vertexAI.getGenerativeModel({
+        model: 'gemini-flash-lite-latest',
+        systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
+        generationConfig: { temperature: 0.1, maxOutputTokens: 1024, responseMimeType: 'application/json' }
+    });
+
+    const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }]
+    });
+
+    const endTime = Date.now();
+    const rawText = result.response.candidates[0].content.parts[0].text;
+
+    let parsed;
+    try {
+        parsed = JSON.parse(rawText);
+    } catch {
+        const block = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (block) { try { parsed = JSON.parse(block[1]); } catch {} }
+        if (!parsed) {
+            const a = rawText.indexOf('{'), b = rawText.lastIndexOf('}');
+            if (a !== -1 && b !== -1) { try { parsed = JSON.parse(rawText.substring(a, b + 1)); } catch {} }
+        }
+        if (!parsed) parsed = { raw_response: rawText.substring(0, 500) };
+    }
+
+    const outputStr = JSON.stringify(parsed);
+    return {
+        agent_name: agentName,
+        start_time: new Date(startTime).toISOString(),
+        end_time: new Date(endTime).toISOString(),
+        duration_ms: endTime - startTime,
+        input_summary: userPrompt.substring(0, 300) + (userPrompt.length > 300 ? '…' : ''),
+        output_summary: outputStr.substring(0, 300) + (outputStr.length > 300 ? '…' : ''),
+        output: parsed
+    };
+}
+
+function buildDisplayText(insight, impact, actions) {
+    const lines = [];
+    if (insight?.primary_insight)      lines.push(`🔍 **Insight:** ${insight.primary_insight}`);
+    if (insight?.severity)             lines.push(`⚠️ **Severity:** ${insight.severity} | Confidence: ${insight.confidence_score}%`);
+    if (insight?.trend_direction)      lines.push(`📈 **Trend:** ${insight.trend_direction}`);
+    if (impact?.immediate_impact)      lines.push(`💥 **Immediate Impact:** ${impact.immediate_impact}`);
+    if (impact?.opportunity_or_threat) lines.push(`🎯 **Assessment:** ${impact.opportunity_or_threat}`);
+    if (actions?.overall_recommendation) lines.push(`✅ **Recommendation:** ${actions.overall_recommendation}`);
+    return lines.join('\n\n') || 'Analysis complete.';
+}
+
+// Antigravity Status
+app.get('/api/antigravity-status', (req, res) => {
+    res.json({
+        configured: !!vertexAI,
+        project: process.env.GOOGLE_CLOUD_PROJECT || null,
+        location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1',
+        model: 'gemini-flash-lite-latest'
+    });
+});
+
+// ===============================
+// POST /api/antigravity-analyze
+// Google Antigravity 5-Agent Pipeline
+// ===============================
+app.post('/api/antigravity-analyze', async (req, res) => {
+    const { message, image } = req.body;
+
+    if (!message && !image) {
+        return res.status(400).json({ error: 'Message or image required.' });
+    }
+    if (!vertexAI) {
+        return res.status(503).json({
+            error: 'Google Antigravity (Vertex AI) not configured. Add GOOGLE_CLOUD_PROJECT to .env and run: gcloud auth application-default login',
+            fallback_available: true
+        });
+    }
+
+    const pipelineId = randomUUID();
+    const pipelineStart = Date.now();
+    const agentTraces = [];
+
+    const dataContext = [
+        `=== INVENTORY DATA (CSV) ===\n${inventoryData}`,
+        `=== MARKET NEWS (JSON) ===\n${newsData}`,
+        `=== LIVE FEED (JSON) ===\n${feedData}`,
+        `=== FINANCIAL REPORT (JSON) ===\n${reportData}`,
+        `=== FORECAST TABLE (JSON) ===\n${forecastData}`
+    ].join('\n\n');
+
+    const userInput = message || '[Image analysis request]';
+
+    try {
+        // ── Agent 1: IngestionAgent ──────────────────────────────────
+        const agent1 = await runVertexAgent(
+            'IngestionAgent',
+            `You are the IngestionAgent in the Google Antigravity multi-agent pipeline for AI Financial Guardian — a Pakistani financial safety system.
+Parse and extract structured signals from raw user input and the provided data sources.
+Return ONLY valid JSON with this exact structure:
+{
+  "document_type": "fraud_report|market_signal|inventory_query|financial_inquiry|scam_alert|general",
+  "entities": ["named entities: people, companies, products, locations"],
+  "key_signals": ["most important signals or keywords"],
+  "amounts": ["monetary values or quantities found"],
+  "dates": ["dates or time references found"],
+  "language": "detected language",
+  "urgency": "Critical|High|Medium|Low"
+}`,
+            `USER INPUT: "${userInput}"\n\nDATA SOURCES:\n${dataContext}`
+        );
+        agentTraces.push(agent1);
+
+        // ── Agent 2: InsightAgent ────────────────────────────────────
+        const agent2 = await runVertexAgent(
+            'InsightAgent',
+            `You are the InsightAgent in the Google Antigravity multi-agent pipeline.
+Generate high-quality financial intelligence insights for Pakistani users based on ingested signals.
+Cross-reference signals with known Pakistani scam patterns, market data, and inventory levels.
+Return ONLY valid JSON with this exact structure:
+{
+  "primary_insight": "The single most important insight in 1-2 sentences",
+  "supporting_details": ["2-3 points supporting the primary insight"],
+  "trend_direction": "Bullish|Bearish|Neutral|Volatile",
+  "severity": "Critical|High|Medium|Low",
+  "confidence_score": 0,
+  "scam_probability": 0,
+  "contradictions_detected": ["any conflicting signals found across data sources"]
+}`,
+            `INGESTION OUTPUT:\n${JSON.stringify(agent1.output, null, 2)}\n\nORIGINAL INPUT: "${userInput}"`
+        );
+        agentTraces.push(agent2);
+
+        // ── Agent 3: ImpactAnalystAgent ──────────────────────────────
+        const agent3 = await runVertexAgent(
+            'ImpactAnalystAgent',
+            `You are the ImpactAnalystAgent in the Google Antigravity multi-agent pipeline.
+Assess real-world consequences of the detected insight specifically for Pakistani users, businesses, and the economy.
+Return ONLY valid JSON with this exact structure:
+{
+  "immediate_impact": "Impact in the next 24-48 hours",
+  "medium_term_impact": "Impact over the next 1-4 weeks",
+  "affected_sectors": ["sectors affected: Retail, Banking, Logistics, Consumers, Government, etc."],
+  "risk_level": "Critical|High|Medium|Low",
+  "opportunity_or_threat": "Opportunity|Threat|Mixed",
+  "financial_exposure_estimate": "estimated PKR amount at risk or potential gain",
+  "population_affected": "description of who in Pakistan is affected"
+}`,
+            `INSIGHT:\n${JSON.stringify(agent2.output, null, 2)}\n\nINGESTION SIGNALS:\n${JSON.stringify(agent1.output, null, 2)}`
+        );
+        agentTraces.push(agent3);
+
+        // ── Agent 4: ActionRecommenderAgent ─────────────────────────
+        const agent4 = await runVertexAgent(
+            'ActionRecommenderAgent',
+            `You are the ActionRecommenderAgent in the Google Antigravity multi-agent pipeline.
+Generate 3-5 prioritized, concrete actions for Pakistani users based on the impact analysis.
+Each action must be realistic and actionable within Pakistan's financial and regulatory context.
+Return ONLY valid JSON with this exact structure:
+{
+  "actions": [
+    {
+      "id": "unique_snake_case_id",
+      "title": "Short action title",
+      "rationale": "Why this action is needed",
+      "expected_outcome": "What will happen if taken",
+      "priority": "Critical|High|Medium|Low",
+      "timeframe": "Immediate|24h|1 week|1 month",
+      "type": "alert|block|report|restock|reroute|notify|investigate"
+    }
+  ],
+  "top_action_id": "id of the single most critical action",
+  "overall_recommendation": "1-2 sentence summary of recommended course of action"
+}`,
+            `IMPACT ANALYSIS:\n${JSON.stringify(agent3.output, null, 2)}\n\nINSIGHT:\n${JSON.stringify(agent2.output, null, 2)}`
+        );
+        agentTraces.push(agent4);
+
+        // ── Agent 5: ExecutionAgent ──────────────────────────────────
+        const topActionId = agent4.output?.top_action_id;
+        const topAction = agent4.output?.actions?.find(a => a.id === topActionId) || agent4.output?.actions?.[0];
+
+        const agent5 = await runVertexAgent(
+            'ExecutionAgent',
+            `You are the ExecutionAgent in the Google Antigravity multi-agent pipeline.
+Simulate the execution of the top recommended action and produce a complete execution report.
+Return ONLY valid JSON with this exact structure:
+{
+  "execution_log": [
+    "Step 1: [specific action taken]",
+    "Step 2: [specific action taken]",
+    "Step 3: [specific action taken]",
+    "Step 4: [verification check]",
+    "Step 5: [completion and status]"
+  ],
+  "email_draft": "A professional Urdu/English email draft relevant to the action (FIA complaint, supplier notice, bank alert, or other authority)",
+  "system_state_before": {
+    "status": "pre-execution system state description",
+    "risk_level": "string",
+    "inventory_status": "string",
+    "financial_exposure": "string"
+  },
+  "system_state_after": {
+    "status": "post-execution system state description",
+    "risk_level": "string",
+    "inventory_status": "string",
+    "financial_exposure": "string"
+  },
+  "artifacts_created": ["list of documents, reports, or records created"],
+  "execution_status": "Success|Partial|Failed",
+  "next_steps": ["2-3 recommended follow-up actions"]
+}`,
+            `TOP ACTION TO EXECUTE:\n${JSON.stringify(topAction, null, 2)}\n\nCONTEXT:\nInsight: ${agent2.output?.primary_insight || ''}\nImpact: ${agent3.output?.immediate_impact || ''}\nScam Risk: ${agent2.output?.scam_probability ?? 0}%`
+        );
+        agentTraces.push(agent5);
+
+        const displayText = buildDisplayText(agent2.output, agent3.output, agent4.output);
+
+        return res.json({
+            pipeline_id: pipelineId,
+            timestamp: new Date().toISOString(),
+            total_duration_ms: Date.now() - pipelineStart,
+            agents: agentTraces,
+            final_output: {
+                display_text: displayText,
+                insight: agent2.output?.primary_insight || '',
+                severity: agent2.output?.severity || 'Medium',
+                scam_score: agent2.output?.scam_probability ?? 0,
+                trend: agent2.output?.trend_direction || 'Neutral',
+                confidence: agent2.output?.confidence_score ?? 0,
+                impact: agent3.output?.immediate_impact || '',
+                affected_sectors: agent3.output?.affected_sectors || [],
+                actions: agent4.output?.actions || [],
+                top_action: topAction || null,
+                execution: agent5.output
+            }
+        });
+
+    } catch (error) {
+        console.error('[Antigravity] Pipeline error:', error.message);
+        return res.status(500).json({
+            error: `Antigravity pipeline failed: ${error.message}`,
+            pipeline_id: pipelineId,
+            total_duration_ms: Date.now() - pipelineStart,
+            partial_traces: agentTraces,
+            fallback_available: true
+        });
+    }
 });
 
 // For local development
