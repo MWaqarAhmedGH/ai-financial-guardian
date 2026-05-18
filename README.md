@@ -1,7 +1,7 @@
 # AI Financial Guardian
 ### #AISeekho2026 — Google Antigravity Hackathon | Challenge 1
 
-Pakistan's autonomous financial intelligence system — multi-source data ingestion, 5-agent reasoning pipeline, real-time scam detection, and simulated action execution.
+Pakistan's autonomous financial intelligence system — multi-source data ingestion, orchestrator-driven 5-agent reasoning pipeline, real-time scam detection, and simulated action execution.
 
 **Live Demo:** https://ai-financial-guardian-two.vercel.app/
 **GitHub:** https://github.com/MWaqarAhmedGH/ai-financial-guardian
@@ -12,13 +12,15 @@ Pakistan's autonomous financial intelligence system — multi-source data ingest
 
 A user pastes a financial situation — a suspicious WhatsApp message, a market report, a business inventory question — and the system autonomously:
 
-1. **Ingests** it alongside 5 real data sources (CSV, JSON feeds, reports)
-2. **Reasons** across all sources to find insights and contradictions
-3. **Assesses** real-world impact for Pakistani users and businesses
-4. **Recommends** prioritized actions with rationale
-5. **Executes** a simulation — showing before/after system state, email drafts, and execution logs
+1. **Classifies** the input type instantly (no API call) — scam, market, business, urgent, general
+2. **Plans** which agents to run based on classification — fast-tracks scams, skips unnecessary agents
+3. **Ingests** alongside 5 real data sources (CSV + JSON feeds)
+4. **Reasons** across sources to find insights and contradictions
+5. **Assesses** real-world impact for Pakistani users and businesses
+6. **Recommends** prioritized actions with rationale
+7. **Executes** a simulation — before/after state, email draft, execution log
 
-All 5 steps are handled by separate AI agents in a sequential pipeline, with full traceability.
+All steps are orchestrated by a `PipelineOrchestrator` that makes routing decisions dynamically.
 
 ---
 
@@ -26,45 +28,66 @@ All 5 steps are handled by separate AI agents in a sequential pipeline, with ful
 
 | Requirement | Weight | Implementation |
 |---|---|---|
-| Google Antigravity Integration | 25% | Vertex AI `gemini-flash-lite-latest` — 5-agent orchestration pipeline via SSE streaming |
-| Agentic Reasoning | 20% | Sequential agents: Ingest → Insight → Impact → Action → Execute |
+| Google Antigravity Integration | 25% | `gemini-flash-lite-latest` — 5-agent orchestration pipeline via SSE streaming |
+| Agentic Reasoning | 20% | Orchestrator → Ingest → Insight → Impact → Action → Execute |
 | Content Ingestion (≥5 sources) | 20% | `inventory.csv`, `news.json`, `feed.json`, `report.json`, `table.json` |
-| Action Simulation | 15% | Before/After state, email draft, execution log with timestamps |
-| Traceability / Logging | 10% | Full agent trace JSON — workplan, reasoning, decision flow, timings |
-| UI / Visualization | 10% | Real-time pipeline dashboard with progress tracker and structured result cards |
+| Action Simulation | 15% | Before/After state, email draft, timestamped execution log |
+| Traceability / Logging | 10% | Full orchestrator log + agent trace JSON export on every run |
+| UI / Visualization | 10% | Real-time SSE dashboard — pipeline progress, result cards, dark/light mode |
 
 ---
 
-## 5-Agent Pipeline
+## Architecture — Orchestrator + 5-Agent Pipeline
 
 ```
 User Input
     │
     ▼
-┌─────────────────┐
-│  IngestionAgent  │  Extracts entities, signals, amounts, urgency
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  InsightAgent    │  Cross-references sources, detects contradictions, scam probability
-└────────┬────────┘
-         │
-         ▼
-┌──────────────────────┐
-│  ImpactAnalystAgent   │  Assesses consequences for Pakistan (24h, 1-4 weeks, sectors)
-└────────┬─────────────┘
-         │
-         ▼
-┌────────────────────────────┐
-│  ActionRecommenderAgent     │  3-5 prioritized actions with rationale and timeframes
-└────────┬───────────────────┘
-         │
-         ▼
-┌──────────────────┐
-│  ExecutionAgent   │  Simulates execution — state change, email draft, audit log
-└──────────────────┘
+┌──────────────────────────────────────────┐
+│           PipelineOrchestrator            │
+│                                          │
+│  classify()  → type: scam / market /     │
+│                 business / urgent /      │
+│                 general                  │
+│                                          │
+│  buildPlan() → which agents to run       │
+│                which agents to skip      │
+│                                          │
+│  shouldContinue() → abort on critical    │
+│                     agent failure        │
+│                                          │
+│  adjustPrompt() → scam fast-track mode   │
+└──────────┬───────────────────────────────┘
+           │
+     ┌─────┴──────────────────────────────┐
+     │  SCAM FAST-TRACK (≥2 scam keywords) │
+     │  Skips ImpactAnalyst + ActionAgent  │
+     │  Goes direct to ExecutionAgent      │
+     └─────┬──────────────────────────────┘
+           │ (normal path)
+           ▼
+    ┌─────────────────┐
+    │  IngestionAgent  │  Entities, amounts, dates, urgency
+    └────────┬────────┘  (CRITICAL — pipeline aborts if fails)
+             ▼
+    ┌─────────────────┐
+    │  InsightAgent    │  Primary insight, scam %, contradictions
+    └────────┬────────┘  (CRITICAL — pipeline aborts if fails)
+             ▼
+    ┌──────────────────────┐
+    │  ImpactAnalystAgent   │  24h + 4-week impact, sectors, PKR exposure
+    └────────┬─────────────┘  (non-critical — continues on failure)
+             ▼
+    ┌────────────────────────────┐
+    │  ActionRecommenderAgent     │  3 actions: 24h / 1 week / 1 month
+    └────────┬───────────────────┘  (non-critical — continues on failure)
+             ▼
+    ┌──────────────────┐
+    │  ExecutionAgent   │  State change, email draft, audit log
+    └──────────────────┘  (non-critical — continues on failure)
 ```
+
+Each agent retries once on failure (400ms delay) before the orchestrator decides to continue or abort.
 
 ---
 
@@ -73,23 +96,33 @@ User Input
 ```
 ai-financial-guardian/
 │
-├── server.js              # Express server + 5-agent pipeline + API routes
-├── .env                   # API keys (not committed)
+├── server.js                  # Entry point only (22 lines)
 ├── package.json
+├── vercel.json                # Vercel deployment config
+├── .env                       # API keys (not committed)
+├── README.md
 │
-├── data/                  # Multi-source data (Challenge 1 ingestion)
-│   ├── inventory.csv      # Pakistani business inventory (SKU levels, locations)
-│   ├── news.json          # Market news feed
-│   ├── feed.json          # Live signals feed
-│   ├── report.json        # Financial report data
-│   └── table.json         # Forecast/trends table
+├── src/                       # Backend logic
+│   ├── data.js                # Data loader, API key pool, parseJSON util
+│   ├── orchestrator.js        # PipelineOrchestrator class
+│   ├── agents.js              # Agent prompts, runAgent(), buildAgentInput()
+│   └── routes/
+│       ├── chat.js            # POST /chat  — standard Gemini chat
+│       └── pipeline.js        # POST /api/pipeline — orchestrated SSE pipeline
 │
-└── public/                # Frontend SPA
-    ├── index.html         # Dashboard — 4 tabs, pipeline view, result cards
-    ├── style.css          # Pure White Minimal design (Apple/Figma aesthetic)
-    ├── script.js          # SSE pipeline runner, tab logic, result rendering
-    ├── sw.js              # Service Worker (PWA, cache-first)
-    └── manifest.json      # PWA manifest (installable on mobile)
+├── data/                      # Multi-source data (Challenge 1)
+│   ├── inventory.csv          # Pakistani business inventory (SKU, locations)
+│   ├── news.json              # Market news feed
+│   ├── feed.json              # Live signals feed
+│   ├── report.json            # Financial report data
+│   └── table.json             # Forecast/trends table
+│
+└── public/                    # Frontend SPA
+    ├── index.html             # Dashboard — 4 tabs, pipeline view, result cards
+    ├── style.css              # Pure White + Dark mode (Apple/Figma aesthetic)
+    ├── script.js              # SSE pipeline runner, theme toggle, tab nav
+    ├── sw.js                  # Service Worker (PWA, cache-first)
+    └── manifest.json          # PWA manifest (installable on mobile/desktop)
 ```
 
 ---
@@ -98,10 +131,10 @@ ai-financial-guardian/
 
 | Tab | Function |
 |---|---|
-| **Guardian** | Main 5-agent pipeline — paste any financial situation |
+| **Guardian** | Main orchestrated 5-agent pipeline — paste any financial situation |
 | **Scam Shield** | Dedicated scam detection — checks against Pakistani scam patterns |
 | **Budget Doctor** | 50/30/20 budget analyzer with AI tip in Hinglish |
-| **Report Summarizer** | Paste a financial report — get key numbers, risks, opportunities |
+| **Report Summarizer** | Paste any report — get key numbers, risks, opportunities |
 
 ---
 
@@ -109,22 +142,27 @@ ai-financial-guardian/
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/` | GET | Serve dashboard |
+| `/` | GET | Serve frontend dashboard |
 | `/chat` | POST | Standard Gemini chat (Guardian standard mode) |
-| `/api/pipeline` | POST + SSE | 5-agent Antigravity pipeline (streaming) |
-| `/api/antigravity-status` | GET | Check Vertex AI config status |
+| `/api/pipeline` | POST + SSE | Orchestrated 5-agent pipeline (real-time streaming) |
+| `/api/antigravity-status` | GET | Pipeline config status |
 | `/api-status` | GET | Health check |
 
 ---
 
 ## Tech Stack
 
-- **AI:** Google Gemini via `@google/generative-ai` + Vertex AI (`@google-cloud/vertexai`)
-- **Backend:** Node.js + Express
-- **Frontend:** Vanilla HTML/CSS/JS (no framework — zero build step)
-- **Streaming:** Server-Sent Events (SSE) over `fetch` + `ReadableStream`
-- **PWA:** Service Worker with cache-first strategy
-- **Speech:** Web Speech API — Urdu voice input (`ur-PK`) + TTS
+| Layer | Technology |
+|---|---|
+| **AI** | Google Gemini `gemini-flash-lite-latest` via `@google/generative-ai` |
+| **Orchestration** | Custom `PipelineOrchestrator` class — keyword classification, dynamic routing |
+| **Backend** | Node.js + Express (modular `src/` structure) |
+| **Frontend** | Vanilla HTML/CSS/JS — no framework, no build step |
+| **Streaming** | Server-Sent Events (SSE) over `fetch` + `ReadableStream` |
+| **PWA** | Service Worker — cache-first, offline support, installable |
+| **Speech** | Web Speech API — Urdu voice input (`ur-PK`) + TTS |
+| **Theme** | Dark/Light mode with `localStorage` persistence + system preference detection |
+| **Mobile** | Fully responsive — iOS-style bottom nav bar, safe-area insets |
 
 ---
 
@@ -140,10 +178,7 @@ npm install
 
 # 3. Create .env file
 GEMINI_API_KEY_1=your_key_here
-# Optional: add GEMINI_API_KEY_2, GEMINI_API_KEY_3 for key rotation
-# Optional: for Google Antigravity (Vertex AI)
-# GOOGLE_CLOUD_PROJECT=your_gcp_project_id
-# GOOGLE_CLOUD_LOCATION=us-central1
+# Optional: GEMINI_API_KEY_2, GEMINI_API_KEY_3 for key rotation
 
 # 4. Run
 node server.js
@@ -155,24 +190,24 @@ node server.js
 
 ## Demo Prompts
 
-**Scam Detection**
+**Scam Fast-Track** — triggers orchestrator to skip 2 agents
 ```
-Mujhe WhatsApp par message aya hai: "Congratulations! Aapki 50,000 ki lottery lagi hai.
-Prize claim karne ke liye abhi 2,000 ka processing fee bhejein."
+Mujhe WhatsApp par message aya hai: "Mubarak ho! Aapki 50,000 ki lottery lagi hai.
+Prize claim karne ke liye abhi 2,000 ka processing fee bhejein. OTP share karein."
 ```
 
-**Business Intelligence (uses inventory + news data)**
+**Business Intelligence** — uses inventory.csv + news.json
 ```
 Analyze current stock levels for Lahore and cross-reference with latest market news.
 ```
 
-**Market Analysis**
+**Market Analysis** — full 5-agent pipeline
 ```
 Pakistan mein dollar rate barh raha hai aur import costs increase ho rahe hain.
 Hamara retail business Karachi mein hai — kya karna chahiye?
 ```
 
-**Report Analysis**
+**Financial Report**
 ```
 Q3 mein hamari net profit 12% giri, operating costs 18% badhe.
 Current cash runway 4 months hai. Kya strategy honi chahiye?
@@ -182,16 +217,20 @@ Current cash runway 4 months hai. Kya strategy honi chahiye?
 
 ## Key Features for Judges
 
-- **Real Autonomy:** Agent decomposes user input into a full workplan without manual prompting
-- **Multi-Source Reasoning:** Contradictions detected by cross-referencing 5 live data sources
-- **Full Traceability:** Export Agent Trace JSON button on every run — complete audit log
-- **Before/After Visualization:** System state change shown explicitly after each simulation
-- **Pakistani Context:** Hinglish responses, Rs currency, local scam patterns (BISP, JazzCash), FIA complaint drafts
-- **Real-time Streaming:** Agents stream results as they complete — no waiting for full pipeline
+- **Real Orchestrator:** `PipelineOrchestrator` classifies input and builds dynamic execution plan — no hardcoded sequences
+- **Scam Fast-Track:** 2+ scam keywords → ImpactAnalyst and ActionRecommender skipped → immediate protection response
+- **Retry Logic:** Each agent retries once on failure; critical agents abort pipeline, non-critical continue with partial data
+- **Multi-Source Reasoning:** 5 data sources cross-referenced; contradictions detected and logged
+- **Full Traceability:** Orchestrator log + per-agent trace exported as JSON — complete audit trail
+- **Real-time Streaming:** SSE pipeline — each agent result streams to UI as it completes
+- **Before/After Visualization:** System state change shown explicitly after every run
+- **Pakistani Context:** Hinglish responses, Rs currency, local scam patterns (BISP, JazzCash, FIA), FIA complaint drafts
+- **Dark/Light Mode:** Theme toggle with system preference detection and localStorage persistence
+- **Mobile-First PWA:** Bottom nav bar, touch-friendly, installable on Android/iOS
 
 ---
 
-## Team
+## Built For
 
-Built for **#AISeekho2026 Google Antigravity Hackathon**
+**#AISeekho2026 Google Antigravity Hackathon** — Challenge 1: Autonomous Content-to-Action Agent
 Submission deadline: May 20, 2026
