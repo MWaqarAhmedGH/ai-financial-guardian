@@ -329,23 +329,9 @@ async function sendMessage(text = null, imageData = null) {
 
     try {
         if (antigravityMode) {
-            // ── Google Antigravity (Vertex AI) 5-Agent Pipeline ──
-            const response = await fetch('/api/antigravity-analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message || 'Analyze this content.', image: imageData }),
-            });
-            const data = await response.json();
+            // ── Real 5-Agent Gemini Pipeline (SSE streaming) ──
             chatWindow.removeChild(loadingDiv);
-
-            if (data.final_output) {
-                renderAntigravityResponse(data);
-            } else if (data.error) {
-                appendMessage(`⚡ Antigravity Error: ${data.error}`, 'ai');
-                if (data.fallback_available) {
-                    appendMessage('ℹ️ Tip: Configure GOOGLE_CLOUD_PROJECT in .env and run gcloud auth application-default login to enable Antigravity mode.', 'ai');
-                }
-            }
+            await runPipeline(message, imageData);
         } else {
             // ── Standard Gemini Mode ──
             const response = await fetch('/chat', {
@@ -573,6 +559,280 @@ imageInput.addEventListener('change', async (e) => {
 sendBtn.addEventListener('click', () => { isVoiceMode = false; sendMessage(); });
 clearBtn.addEventListener('click', clearChat);
 userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { isVoiceMode = false; sendMessage(); } });
+
+// =========================================================
+// PIPELINE — Real 5-Agent Sequential Pipeline
+// =========================================================
+const AGENT_META = [
+    { name: 'IngestionAgent',         desc: 'Extracting entities & signals',     icon: '📥' },
+    { name: 'InsightAgent',           desc: 'Generating financial intelligence',  icon: '🧠' },
+    { name: 'ImpactAnalystAgent',     desc: 'Assessing market consequences',      icon: '📊' },
+    { name: 'ActionRecommenderAgent', desc: 'Formulating action strategy',        icon: '⚡' },
+    { name: 'ExecutionAgent',         desc: 'Simulating action execution',        icon: '🚀' }
+];
+
+let pipelineKeyCounter = 0;
+
+function createPipelineMessage() {
+    const k = ++pipelineKeyCounter;
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('message', 'ai-message', 'pipeline-message');
+    msgDiv.dataset.pk = k;
+
+    msgDiv.innerHTML = `
+        <div class="pipeline-header">
+            <span class="ag-badge">⚡ Google Antigravity Pipeline</span>
+            <span class="ag-meta pipeline-id-label">Initializing…</span>
+        </div>
+        <div class="pipeline-agents-list">
+            ${AGENT_META.map((a, i) => `
+                <div class="pipeline-agent-row waiting" data-pk="${k}" data-idx="${i}">
+                    <div class="pa-icon">○</div>
+                    <div class="pa-info">
+                        <div class="pa-name">${a.icon} ${a.name}</div>
+                        <div class="pa-desc">${a.desc}</div>
+                    </div>
+                    <div class="pa-timing">—</div>
+                </div>`).join('')}
+        </div>
+        <div class="pipeline-results" style="display:none"></div>
+        <div class="pipeline-footer" style="display:none">
+            <button class="export-trace-btn">📥 Export Trace JSON</button>
+            <span class="pipeline-total-time">—</span>
+        </div>`;
+
+    return { msgDiv, k };
+}
+
+function agentRow(msgDiv, idx)    { return msgDiv.querySelector(`.pipeline-agent-row[data-idx="${idx}"]`); }
+function agentIcon(msgDiv, idx)   { return agentRow(msgDiv, idx)?.querySelector('.pa-icon'); }
+function agentTiming(msgDiv, idx) { return agentRow(msgDiv, idx)?.querySelector('.pa-timing'); }
+
+function handlePipelineEvent(event, msgDiv, traceStore) {
+    const { type } = event;
+
+    if (type === 'pipeline_start') {
+        const label = msgDiv.querySelector('.pipeline-id-label');
+        if (label) label.textContent = `ID: ${event.pipeline_id.substring(0, 8)}… | 5 Agents`;
+        return;
+    }
+
+    if (type === 'agent_start') {
+        const row  = agentRow(msgDiv, event.index);
+        const icon = agentIcon(msgDiv, event.index);
+        if (row)  row.className  = 'pipeline-agent-row running';
+        if (icon) icon.innerHTML = '<span class="pa-spinner">⟳</span>';
+    }
+
+    if (type === 'agent_complete') {
+        const row    = agentRow(msgDiv, event.index);
+        const icon   = agentIcon(msgDiv, event.index);
+        const timing = agentTiming(msgDiv, event.index);
+        const ok     = event.trace?.status === 'completed';
+        if (row)    row.className   = `pipeline-agent-row ${ok ? 'completed' : 'failed'}`;
+        if (icon)   icon.textContent = ok ? '✓' : '✕';
+        if (timing) timing.textContent = `${event.trace?.duration_ms ?? 0}ms`;
+    }
+
+    if (type === 'pipeline_complete') {
+        traceStore.data = event;
+
+        // Total time
+        const totalEl = msgDiv.querySelector('.pipeline-total-time');
+        if (totalEl) totalEl.textContent = `Total: ${event.total_duration_ms}ms`;
+
+        // Results
+        const resultsEl = msgDiv.querySelector('.pipeline-results');
+        if (resultsEl) {
+            resultsEl.style.display = 'flex';
+            resultsEl.innerHTML = buildPipelineResultsHTML(event.results);
+        }
+
+        // Footer
+        const footer = msgDiv.querySelector('.pipeline-footer');
+        if (footer) {
+            footer.style.display = 'flex';
+            footer.querySelector('.export-trace-btn').addEventListener('click', () => {
+                const blob = new Blob([JSON.stringify(event, null, 2)], { type: 'application/json' });
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement('a');
+                a.href = url; a.download = `pipeline-${event.pipeline_id.substring(0, 8)}.json`;
+                a.click(); URL.revokeObjectURL(url);
+            });
+        }
+
+        // Update dashboard risk
+        const sevMap = { Critical: '#FF4D6D', High: '#FF4D6D', Medium: '#FFC107', Low: '#00d4aa' };
+        const sev = event.results?.insight?.severity || 'Medium';
+        const riskEl = document.getElementById('stat-risk');
+        riskEl.innerText = sev; riskEl.style.color = sevMap[sev] || '#00E5FF';
+
+        // Wire trace panel
+        currentAgentTrace = {
+            workplan: `[Antigravity Pipeline] ID: ${event.pipeline_id} | ${event.total_duration_ms}ms`,
+            tasks: (event.agents || []).map(a => `[${a.agent_name}] ${a.status} — ${a.duration_ms}ms`),
+            reasoning: event.results?.insight?.primary_insight || '',
+            decision_flow: 'Input → IngestionAgent → InsightAgent → ImpactAnalystAgent → ActionRecommenderAgent → ExecutionAgent',
+            action_execution: JSON.stringify(event.results?.execution?.execution_log || [])
+        };
+        toggleTraceBtn.classList.add('pulse');
+
+        saveToLocal(event.results?.insight?.primary_insight || 'Pipeline complete', 'ai', false, event);
+    }
+
+    if (type === 'pipeline_error') {
+        const footer = msgDiv.querySelector('.pipeline-footer');
+        if (footer) {
+            footer.style.display = 'flex';
+            footer.innerHTML = `<span class="pipeline-error-msg">⚠️ Pipeline error: ${event.error}</span>`;
+        }
+        AGENT_META.forEach((_, i) => {
+            const row  = agentRow(msgDiv, i);
+            const icon = agentIcon(msgDiv, i);
+            if (row && row.classList.contains('waiting')) {
+                row.className = 'pipeline-agent-row failed';
+                if (icon) icon.textContent = '—';
+            }
+        });
+    }
+}
+
+function buildPipelineResultsHTML(r) {
+    if (!r) return '';
+    let html = '';
+    const sevColor = { Critical: '#FF4D6D', High: '#FF4D6D', Medium: '#FFC107', Low: '#00d4aa' };
+    const priColor = { Critical: '#FF4D6D', High: '#f59e0b', Medium: '#3b82f6' };
+
+    // ── Insight card ─────────────────────────────────────────
+    if (r.insight) {
+        const sc = sevColor[r.insight.severity] || '#00E5FF';
+        html += `<div class="pr-card">
+            <div class="pr-card-title" style="color:${sc}">🧠 Intelligence Report</div>
+            <div class="pr-insight-text">${r.insight.primary_insight || ''}</div>
+            <div class="pr-tags">
+                ${r.insight.severity     ? `<span class="pr-tag" style="border-color:${sc};color:${sc}">${r.insight.severity}</span>` : ''}
+                ${r.insight.trend_direction ? `<span class="pr-tag">${r.insight.trend_direction}</span>` : ''}
+                ${r.insight.confidence_score != null ? `<span class="pr-tag">Confidence: ${r.insight.confidence_score}%</span>` : ''}
+            </div>
+            ${r.insight.affected_parties?.length ? `<div class="pr-meta">Affected: ${r.insight.affected_parties.join(', ')}</div>` : ''}
+        </div>`;
+    }
+
+    // ── Impact card ──────────────────────────────────────────
+    if (r.impact) {
+        const tc = r.impact.opportunity_or_threat === 'Opportunity' ? '#00d4aa' : r.impact.opportunity_or_threat === 'Mixed' ? '#FFC107' : '#FF4D6D';
+        html += `<div class="pr-card">
+            <div class="pr-card-title" style="color:#f59e0b">📊 Impact Analysis</div>
+            <div class="pr-impact-grid">
+                <div class="pr-impact-item"><div class="pr-impact-label">Immediate (24-48h)</div><div class="pr-impact-val">${r.impact.immediate_impact || '—'}</div></div>
+                <div class="pr-impact-item"><div class="pr-impact-label">Medium Term (1-4 wks)</div><div class="pr-impact-val">${r.impact.medium_term_impact || '—'}</div></div>
+            </div>
+            <div class="pr-tags">
+                ${r.impact.opportunity_or_threat ? `<span class="pr-tag" style="border-color:${tc};color:${tc}">${r.impact.opportunity_or_threat}</span>` : ''}
+                ${r.impact.pkr_impact ? `<span class="pr-tag">PKR: ${r.impact.pkr_impact}</span>` : ''}
+                ${r.impact.psx_impact ? `<span class="pr-tag">PSX: ${r.impact.psx_impact}</span>` : ''}
+            </div>
+            ${r.impact.affected_sectors?.length ? `<div class="pr-meta">Sectors: ${r.impact.affected_sectors.join(' · ')}</div>` : ''}
+        </div>`;
+    }
+
+    // ── Actions card ─────────────────────────────────────────
+    if (r.actions?.actions?.length) {
+        html += `<div class="pr-card">
+            <div class="pr-card-title" style="color:#a78bfa">⚡ Action Plan (3 Steps)</div>
+            <div class="pr-actions-list">
+                ${r.actions.actions.map((a, i) => `
+                    <div class="pr-action-item">
+                        <div class="pr-action-hdr">
+                            <span class="pr-action-num">${i + 1}</span>
+                            <span class="pr-action-title">${a.title}</span>
+                            <span class="pr-tag" style="border-color:${priColor[a.priority]||'#6b7280'};color:${priColor[a.priority]||'#6b7280'}">${a.timeframe}</span>
+                        </div>
+                        <div class="pr-action-rationale">${a.rationale}</div>
+                        <div class="pr-action-outcome">→ ${a.expected_outcome}</div>
+                    </div>`).join('')}
+            </div>
+        </div>`;
+    }
+
+    // ── Execution card ───────────────────────────────────────
+    if (r.execution) {
+        const ex = r.execution;
+        html += `<div class="pr-card">
+            <div class="pr-card-title" style="color:#00d4aa">🚀 Execution Report</div>
+            ${ex.execution_log?.length ? `<div class="pr-exec-log">${ex.execution_log.map(s =>
+                `<div class="pr-exec-step"><span class="pr-exec-check">✓</span> ${s.step || s} ${s.status ? `<span class="pr-exec-status">[${s.status}]</span>` : ''}</div>`
+            ).join('')}</div>` : ''}
+            ${ex.system_state_before && ex.system_state_after ? `
+                <div class="pr-state-row">
+                    <div class="pr-state-box">
+                        <div class="pr-state-lbl">Before</div>
+                        <div class="pr-state-risk-num" style="color:#FF4D6D">${ex.system_state_before.portfolio_risk_score}</div>
+                        <div class="pr-state-status-txt">${ex.system_state_before.alert_status || ''}</div>
+                    </div>
+                    <div class="pr-state-arr">→</div>
+                    <div class="pr-state-box">
+                        <div class="pr-state-lbl">After</div>
+                        <div class="pr-state-risk-num" style="color:#00d4aa">${ex.system_state_after.portfolio_risk_score}</div>
+                        <div class="pr-state-status-txt">${ex.system_state_after.alert_status || ''}</div>
+                    </div>
+                </div>` : ''}
+            ${ex.email_draft ? `
+                <div class="pr-email">
+                    <div class="pr-email-header">📧 Stakeholder Email Draft</div>
+                    <div class="pr-email-to">To: ${ex.email_draft.to || ''}</div>
+                    <div class="pr-email-subj">Subject: ${ex.email_draft.subject || ''}</div>
+                    <div class="pr-email-body">${(ex.email_draft.body || '').substring(0, 400)}${(ex.email_draft.body || '').length > 400 ? '…' : ''}</div>
+                </div>` : ''}
+        </div>`;
+    }
+
+    return html;
+}
+
+async function runPipeline(message, imageData) {
+    const { msgDiv, k } = createPipelineMessage();
+    chatWindow.appendChild(msgDiv);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    const traceStore = { data: null };
+
+    try {
+        const response = await fetch('/api/pipeline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message || 'Analyze this.', image: imageData })
+        });
+
+        if (!response.ok) {
+            const e = await response.json().catch(() => ({}));
+            throw new Error(e.error || `HTTP ${response.status}`);
+        }
+
+        const reader  = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const event = JSON.parse(line.slice(6));
+                    handlePipelineEvent(event, msgDiv, traceStore);
+                    chatWindow.scrollTop = chatWindow.scrollHeight;
+                } catch { /* skip malformed */ }
+            }
+        }
+    } catch (err) {
+        handlePipelineEvent({ type: 'pipeline_error', error: err.message, agents: [] }, msgDiv, traceStore);
+    }
+}
 
 // =========================================================
 // TAB NAVIGATION

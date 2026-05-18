@@ -522,6 +522,151 @@ Return ONLY valid JSON with this exact structure:
     }
 });
 
+// ===============================
+// Gemini 5-Agent Pipeline
+// ===============================
+const PIPELINE_AGENTS = {
+    IngestionAgent: `You are a Financial Content Ingestion Agent. Extract from the input: document_type, entities (companies/people/places), key_amounts (all numbers with context), dates, and core_topic in one sentence.
+Return ONLY valid JSON with this exact structure:
+{"document_type":"string","entities":["array of strings"],"key_amounts":[{"amount":"string","context":"string"}],"dates":["array of strings"],"core_topic":"string"}`,
+
+    InsightAgent: `You are a Financial Insight Agent specialized in Pakistan economy.
+Given extracted data, identify the PRIMARY insight (not a summary — the real signal that matters most).
+Return ONLY valid JSON with this exact structure:
+{"primary_insight":"string","trend_direction":"Bullish|Bearish|Neutral|Volatile","severity":"Critical|High|Medium|Low","confidence_score":0,"affected_parties":["array of strings"]}`,
+
+    ImpactAnalystAgent: `You are a Financial Impact Analyst for Pakistan market.
+Given the insight, analyze real consequences for Pakistani businesses, consumers, and markets.
+Return ONLY valid JSON with this exact structure:
+{"immediate_impact":"string","medium_term_impact":"string","affected_sectors":["array"],"risk_level":"Critical|High|Medium|Low","opportunity_or_threat":"Opportunity|Threat|Mixed","pkr_impact":"string","psx_impact":"string"}`,
+
+    ActionRecommenderAgent: `You are a Financial Action Strategist.
+Generate exactly 3 actions: one immediate (24h), one short-term (1 week), one strategic (1 month).
+Return ONLY valid JSON with this exact structure:
+{"actions":[{"title":"string","rationale":"string","expected_outcome":"string","priority":"Critical|High|Medium","timeframe":"24h|1 week|1 month"}]}`,
+
+    ExecutionAgent: `You are an Action Execution Agent. Simulate executing the top priority action.
+Generate a realistic email draft to stakeholders and show system state change.
+Return ONLY valid JSON with this exact structure:
+{"execution_log":[{"timestamp":"ISO string","step":"string","status":"completed|in_progress"}],"email_draft":{"to":"string","subject":"string","body":"string"},"system_state_before":{"portfolio_risk_score":0,"alert_status":"string","pending_actions":0},"system_state_after":{"portfolio_risk_score":0,"alert_status":"string","pending_actions":0},"artifacts_created":["array of strings"]}`
+};
+
+async function runPipelineAgent(agentName, systemPrompt, userInput) {
+    const startTime = Date.now();
+    const startTimestamp = new Date(startTime).toISOString();
+
+    try {
+        const key = apiKeys[currentKeyIndex];
+        const genAI = new GoogleGenerativeAI(key);
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-flash-lite-latest',
+            systemInstruction: systemPrompt,
+            generationConfig: { temperature: 0.1, maxOutputTokens: 800, responseMimeType: 'application/json' }
+        });
+
+        const result = await model.generateContent(userInput);
+        const rawText = result.response.text();
+
+        let parsed;
+        try { parsed = JSON.parse(rawText); } catch {
+            const block = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (block) { try { parsed = JSON.parse(block[1]); } catch {} }
+            if (!parsed) {
+                const a = rawText.indexOf('{'), b = rawText.lastIndexOf('}');
+                if (a !== -1 && b !== -1) { try { parsed = JSON.parse(rawText.substring(a, b + 1)); } catch {} }
+            }
+            if (!parsed) parsed = { raw_response: rawText.substring(0, 400) };
+        }
+
+        const endTime = Date.now();
+        return { agent_name: agentName, start_timestamp: startTimestamp, end_timestamp: new Date(endTime).toISOString(), duration_ms: endTime - startTime, status: 'completed', output: parsed };
+    } catch (error) {
+        rotateKey();
+        const endTime = Date.now();
+        return { agent_name: agentName, start_timestamp: startTimestamp, end_timestamp: new Date(endTime).toISOString(), duration_ms: endTime - startTime, status: 'failed', error: error.message, output: null };
+    }
+}
+
+// ===============================
+// POST /api/pipeline — Real 5-Agent Pipeline (SSE streaming)
+// ===============================
+app.post('/api/pipeline', async (req, res) => {
+    const { message, image } = req.body;
+    if (!message && !image) return res.status(400).json({ error: 'Message required.' });
+    if (apiKeys.length === 0) return res.status(500).json({ error: 'No API keys configured.' });
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const emit = (type, payload) => {
+        try { res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`); } catch {}
+    };
+
+    const pipelineId = randomUUID();
+    const pipelineStart = Date.now();
+    const agentTraces = [];
+    const results = {};
+    const userInput = message || '[Image analysis request]';
+    const dataCtx = `Market context:\n${newsData}\n\nFinancial data:\n${reportData}\n\nInventory:\n${inventoryData.split('\n').slice(0,5).join('\n')}`;
+
+    emit('pipeline_start', { pipeline_id: pipelineId, timestamp: new Date().toISOString() });
+
+    try {
+        // ── Agent 1 ────────────────────────────────────────────
+        emit('agent_start', { agent_name: 'IngestionAgent', index: 0 });
+        const a1 = await runPipelineAgent('IngestionAgent', PIPELINE_AGENTS.IngestionAgent,
+            `User input: "${userInput}"\n\n${dataCtx}`);
+        agentTraces.push(a1); results.ingestion = a1.output;
+        emit('agent_complete', { agent_name: 'IngestionAgent', index: 0, trace: a1 });
+        if (a1.status === 'failed') throw new Error('IngestionAgent: ' + a1.error);
+
+        // ── Agent 2 ────────────────────────────────────────────
+        emit('agent_start', { agent_name: 'InsightAgent', index: 1 });
+        const a2 = await runPipelineAgent('InsightAgent', PIPELINE_AGENTS.InsightAgent,
+            `Ingested data:\n${JSON.stringify(a1.output, null, 2)}\n\nOriginal input: "${userInput}"`);
+        agentTraces.push(a2); results.insight = a2.output;
+        emit('agent_complete', { agent_name: 'InsightAgent', index: 1, trace: a2 });
+
+        // ── Agent 3 ────────────────────────────────────────────
+        emit('agent_start', { agent_name: 'ImpactAnalystAgent', index: 2 });
+        const a3 = await runPipelineAgent('ImpactAnalystAgent', PIPELINE_AGENTS.ImpactAnalystAgent,
+            `Insight:\n${JSON.stringify(a2.output, null, 2)}`);
+        agentTraces.push(a3); results.impact = a3.output;
+        emit('agent_complete', { agent_name: 'ImpactAnalystAgent', index: 2, trace: a3 });
+
+        // ── Agent 4 ────────────────────────────────────────────
+        emit('agent_start', { agent_name: 'ActionRecommenderAgent', index: 3 });
+        const a4 = await runPipelineAgent('ActionRecommenderAgent', PIPELINE_AGENTS.ActionRecommenderAgent,
+            `Impact analysis:\n${JSON.stringify(a3.output, null, 2)}\nInsight: ${a2.output?.primary_insight || ''}`);
+        agentTraces.push(a4); results.actions = a4.output;
+        emit('agent_complete', { agent_name: 'ActionRecommenderAgent', index: 3, trace: a4 });
+
+        // ── Agent 5 ────────────────────────────────────────────
+        emit('agent_start', { agent_name: 'ExecutionAgent', index: 4 });
+        const topAction = a4.output?.actions?.[0] || {};
+        const a5 = await runPipelineAgent('ExecutionAgent', PIPELINE_AGENTS.ExecutionAgent,
+            `Top action:\n${JSON.stringify(topAction, null, 2)}\n\nContext — Insight: ${a2.output?.primary_insight || ''} | Risk: ${a3.output?.risk_level || ''} | Impact: ${a3.output?.immediate_impact || ''}`);
+        agentTraces.push(a5); results.execution = a5.output;
+        emit('agent_complete', { agent_name: 'ExecutionAgent', index: 4, trace: a5 });
+
+        emit('pipeline_complete', {
+            pipeline_id: pipelineId,
+            total_duration_ms: Date.now() - pipelineStart,
+            timestamp: new Date().toISOString(),
+            agents: agentTraces,
+            results
+        });
+    } catch (err) {
+        console.error('[Pipeline] Error:', err.message);
+        emit('pipeline_error', { pipeline_id: pipelineId, error: err.message, agents: agentTraces, partial_results: results });
+    }
+
+    res.end();
+});
+
 // For local development
 if (process.env.NODE_ENV !== 'production') {
     const port = process.env.PORT || 3000;
