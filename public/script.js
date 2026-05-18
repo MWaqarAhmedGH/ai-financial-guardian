@@ -573,3 +573,295 @@ imageInput.addEventListener('change', async (e) => {
 sendBtn.addEventListener('click', () => { isVoiceMode = false; sendMessage(); });
 clearBtn.addEventListener('click', clearChat);
 userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { isVoiceMode = false; sendMessage(); } });
+
+// =========================================================
+// TAB NAVIGATION
+// =========================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${target}`).classList.add('active');
+    });
+});
+
+// =========================================================
+// SHARED HELPER: call /chat with a prompt, return parsed data
+// =========================================================
+async function callAI(prompt) {
+    const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: prompt })
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+}
+
+function setLoading(btnId, loadingText, originalText, loading) {
+    const btn = document.getElementById(btnId);
+    btn.textContent = loading ? loadingText : originalText;
+    btn.disabled = loading;
+}
+
+// =========================================================
+// TAB 2: SCAM SHIELD
+// =========================================================
+document.getElementById('scam-analyze-btn').addEventListener('click', analyzeScam);
+
+async function analyzeScam() {
+    const text = document.getElementById('scam-input').value.trim();
+    if (!text) { alert('Please paste a message or offer to analyze.'); return; }
+
+    setLoading('scam-analyze-btn', '⏳ Analyzing...', '🔍 Analyze for Scams', true);
+    document.getElementById('scam-results').style.display = 'none';
+    document.getElementById('scam-warning-banner').style.display = 'none';
+
+    const prompt = `You are Pakistan's top financial fraud detection expert. Analyze this content for scam patterns:
+
+"${text}"
+
+Check specifically for these Pakistan-specific scam types:
+- Fake prize / lucky draw scams (lottery, prize money)
+- Ponzi / MLM schemes (Aitkaf, fake crypto, dubious investment)
+- Advance fee fraud (processing fees, membership fees, activation charges)
+- Fake government schemes (fake BISP, FBR tax refund, Ehsaas fraud)
+- WhatsApp / phone impersonation fraud
+- Fake job offers requiring upfront payment
+
+Respond in our standard JSON format:
+- display_text: 6-8 Hinglish bullet points — state if it IS or IS NOT a scam, name specific red flags found, explain the scam type if detected, and tell exactly what the user should do
+- scam_score: 0-100 (0 = definitely safe, 100 = confirmed scam)
+- insight: name of the scam type detected (or "No scam detected")
+- impact: estimated financial risk in PKR or "None"
+- recommended_actions: 3 concrete steps the user should take (block, report, verify, etc.)`;
+
+    try {
+        const data = await callAI(prompt);
+        renderScamResults(data);
+    } catch (e) {
+        alert('Analysis failed. Check your connection and try again.');
+    } finally {
+        setLoading('scam-analyze-btn', '', '🔍 Analyze for Scams', false);
+    }
+}
+
+function renderScamResults(data) {
+    const score = typeof data.scam_score === 'number' ? data.scam_score : 0;
+
+    // Warning banner
+    const banner = document.getElementById('scam-warning-banner');
+    if (score > 60) {
+        banner.style.display = 'flex';
+        banner.textContent = `🚨 HIGH SCAM RISK: ${score}/100 — DO NOT PROCEED`;
+    } else {
+        banner.style.display = 'none';
+    }
+
+    // Score circle
+    const circle = document.getElementById('scam-score-circle');
+    document.getElementById('scam-score-num').textContent = score;
+    circle.className = 'score-circle ' + (score > 60 ? 'score-danger' : score > 30 ? 'score-warning' : 'score-safe');
+    document.getElementById('scam-score-label').textContent = score > 60 ? 'HIGH RISK' : score > 30 ? 'SUSPICIOUS' : 'APPEARS SAFE';
+    document.getElementById('scam-insight-label').textContent = data.insight || '';
+
+    // Analysis text
+    document.getElementById('scam-analysis').innerHTML = formatMessage(data.display_text || '');
+
+    // Action list
+    const actionsDiv = document.getElementById('scam-actions');
+    if (data.recommended_actions?.length) {
+        actionsDiv.style.display = 'block';
+        actionsDiv.innerHTML = '<strong>📋 What To Do:</strong><ul>' +
+            data.recommended_actions.map(a => `<li>${a.label || a.title || a}</li>`).join('') + '</ul>';
+    }
+
+    document.getElementById('scam-results').style.display = 'block';
+    document.getElementById('scam-results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// =========================================================
+// TAB 3: BUDGET DOCTOR
+// =========================================================
+document.getElementById('budget-doctor-btn').addEventListener('click', analyzeBudget);
+
+async function analyzeBudget() {
+    const income     = parseFloat(document.getElementById('bd-income').value)    || 0;
+    const rent       = parseFloat(document.getElementById('bd-rent').value)      || 0;
+    const food       = parseFloat(document.getElementById('bd-food').value)      || 0;
+    const transport  = parseFloat(document.getElementById('bd-transport').value) || 0;
+    const utilities  = parseFloat(document.getElementById('bd-utilities').value) || 0;
+    const other      = parseFloat(document.getElementById('bd-other').value)     || 0;
+
+    if (!income) { alert('Please enter your monthly income.'); return; }
+
+    const totalExp = rent + food + transport + utilities + other;
+    const savings  = income - totalExp;
+    const nums     = { income, rent, food, transport, utilities, other, savings };
+
+    setLoading('budget-doctor-btn', '⏳ Diagnosing...', '💊 Diagnose My Budget', true);
+    document.getElementById('budget-doctor-results').style.display = 'none';
+
+    const pct = v => income > 0 ? (v / income * 100).toFixed(1) : 0;
+
+    const prompt = `You are a certified Pakistani financial advisor. Diagnose this monthly household budget:
+
+Monthly Income  : PKR ${income.toLocaleString()}
+Rent / Housing  : PKR ${rent.toLocaleString()} (${pct(rent)}% of income)
+Food & Groceries: PKR ${food.toLocaleString()} (${pct(food)}% of income)
+Transport       : PKR ${transport.toLocaleString()} (${pct(transport)}% of income)
+Utilities       : PKR ${utilities.toLocaleString()} (${pct(utilities)}% of income)
+Other Expenses  : PKR ${other.toLocaleString()} (${pct(other)}% of income)
+Total Expenses  : PKR ${totalExp.toLocaleString()}
+Monthly Savings : PKR ${savings.toLocaleString()} (${pct(savings)}% savings rate)
+
+Pakistan healthy benchmarks: Rent ≤30%, Food ≤20%, Transport ≤10%, Utilities ≤8%, Savings ≥20%.
+Pakistan inflation 2026: ~25%. Emergency fund target: 3-6 months of expenses = PKR ${(totalExp * 3).toLocaleString()} to ${(totalExp * 6).toLocaleString()}.
+
+Respond in our standard JSON format:
+- display_text: 6-8 Hinglish bullet points — (1) overall health score statement, (2-4) which categories are over/under budget with specific percentages, (5-7) exactly 3 saving tips specific to Pakistan economy in 2026, (8) emergency fund status and how many months to save it at current rate
+- scam_score: use this field for the Financial Health Score 0-100 (higher = healthier finances)
+- insight: one-line financial diagnosis (e.g. "Over-spending on rent, under-saving")
+- impact: the single biggest financial risk this person faces`;
+
+    try {
+        const data = await callAI(prompt);
+        renderBudgetResults(data, nums);
+    } catch (e) {
+        alert('Analysis failed. Check your connection and try again.');
+    } finally {
+        setLoading('budget-doctor-btn', '', '💊 Diagnose My Budget', false);
+    }
+}
+
+function drawBudgetChart(nums) {
+    const { income, rent, food, transport, utilities, other, savings } = nums;
+    const chart = document.getElementById('bd-chart');
+    chart.innerHTML = '';
+
+    const cats = [
+        { label: 'Rent / Housing',   value: rent,       color: '#f43f5e' },
+        { label: 'Food & Groceries', value: food,       color: '#f59e0b' },
+        { label: 'Transport',        value: transport,  color: '#3b82f6' },
+        { label: 'Utilities',        value: utilities,  color: '#8b5cf6' },
+        { label: 'Other',            value: other,      color: '#6b7280' },
+        { label: 'Savings',          value: Math.max(savings, 0), color: '#00d4aa' }
+    ];
+
+    cats.forEach(cat => {
+        if (cat.value <= 0) return;
+        const pct = income > 0 ? Math.min((cat.value / income) * 100, 100).toFixed(1) : 0;
+        const row = document.createElement('div');
+        row.classList.add('bd-bar-row');
+        row.innerHTML = `
+            <div class="bd-bar-label">${cat.label}</div>
+            <div class="bd-bar-track">
+                <div class="bd-bar-fill" style="width:${pct}%;background:${cat.color}"></div>
+            </div>
+            <div class="bd-bar-value">PKR ${cat.value.toLocaleString()} <span class="bd-pct">${pct}%</span></div>
+        `;
+        chart.appendChild(row);
+    });
+}
+
+function renderBudgetResults(data, nums) {
+    const health = typeof data.scam_score === 'number' ? data.scam_score : 50;
+
+    // Score circle
+    const circle = document.getElementById('health-score-circle');
+    document.getElementById('health-score-num').textContent = health;
+    circle.className = 'score-circle ' + (health >= 70 ? 'score-safe' : health >= 40 ? 'score-warning' : 'score-danger');
+    document.getElementById('health-score-label').textContent = health >= 70 ? 'Financially Healthy' : health >= 40 ? 'Needs Attention' : 'Critical';
+    document.getElementById('health-insight-label').textContent = data.insight || '';
+
+    // Bar chart
+    drawBudgetChart(nums);
+
+    // AI analysis
+    document.getElementById('bd-analysis').innerHTML = formatMessage(data.display_text || '');
+
+    const results = document.getElementById('budget-doctor-results');
+    results.style.display = 'block';
+    results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// =========================================================
+// TAB 4: REPORT SUMMARIZER
+// =========================================================
+document.getElementById('report-summarize-btn').addEventListener('click', summarizeReport);
+
+async function summarizeReport() {
+    const text = document.getElementById('report-input').value.trim();
+    if (!text)         { alert('Please paste a document to summarize.'); return; }
+    if (text.length < 100) { alert('Document is too short. Please paste a full report or article.'); return; }
+
+    setLoading('report-summarize-btn', '⏳ Summarizing...', '⚡ Summarize in 10 Seconds', true);
+    document.getElementById('report-results').style.display = 'none';
+
+    const prompt = `You are an executive assistant for a busy Pakistani CEO. Summarize this document concisely and professionally:
+
+---
+${text.substring(0, 8000)}
+---
+
+Respond in our standard JSON format:
+- display_text: EXACTLY 5 bullet points using • symbol. Each point is one complete, crisp English sentence covering the 5 most important takeaways. Make each point standalone and actionable.
+- insight: Extract the 3-5 most important numbers/metrics/figures from the document. Format: "Key Figures: [figure 1], [figure 2], [figure 3]"
+- impact: The single biggest RISK mentioned or implied in this document. One sharp sentence.
+- recommended_actions: Exactly 2 actions:
+    1. id: "opportunity", label: "Opportunity: [the biggest opportunity from this document in one line]"
+    2. id: "action", label: "Action Required: [the most urgent thing to do based on this document]"
+- scam_score: 0 (not applicable here, set to 0)`;
+
+    try {
+        const data = await callAI(prompt);
+        renderReportResults(data);
+    } catch (e) {
+        alert('Summarization failed. Check your connection and try again.');
+    } finally {
+        setLoading('report-summarize-btn', '', '⚡ Summarize in 10 Seconds', false);
+    }
+}
+
+function renderReportResults(data) {
+    // 5-bullet summary
+    const summaryDiv = document.getElementById('report-summary');
+    summaryDiv.innerHTML = '<div class="report-section-title">📋 Executive Summary</div>' +
+        '<div class="report-bullets">' + formatMessage(data.display_text || '') + '</div>';
+
+    // Key figures + risk + opportunity
+    const metaDiv = document.getElementById('report-meta');
+    let html = '';
+
+    if (data.insight) {
+        html += `<div class="report-stat-card numbers-card">
+            <span class="report-stat-icon">🔢</span>
+            <div><div class="report-stat-title">Key Figures</div><div class="report-stat-body">${data.insight}</div></div>
+        </div>`;
+    }
+    if (data.impact) {
+        html += `<div class="report-stat-card risk-card">
+            <span class="report-stat-icon">⚠️</span>
+            <div><div class="report-stat-title">Main Risk</div><div class="report-stat-body">${data.impact}</div></div>
+        </div>`;
+    }
+    if (data.recommended_actions?.length >= 1) {
+        html += `<div class="report-stat-card opp-card">
+            <span class="report-stat-icon">🚀</span>
+            <div><div class="report-stat-title">Main Opportunity</div><div class="report-stat-body">${(data.recommended_actions[0].label || '').replace('Opportunity: ', '')}</div></div>
+        </div>`;
+    }
+    if (data.recommended_actions?.length >= 2) {
+        html += `<div class="report-stat-card action-card">
+            <span class="report-stat-icon">✅</span>
+            <div><div class="report-stat-title">Action Required</div><div class="report-stat-body">${(data.recommended_actions[1].label || '').replace('Action Required: ', '')}</div></div>
+        </div>`;
+    }
+    metaDiv.innerHTML = html;
+
+    const results = document.getElementById('report-results');
+    results.style.display = 'block';
+    results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}

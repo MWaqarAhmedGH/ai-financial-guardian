@@ -800,3 +800,348 @@ strong { color: var(--accent-blue); }
     color: #00d4aa;
     font-weight: bold;
 }
+
+/* =========================================
+   TAB NAVIGATION
+   ========================================= */
+.tab-nav {
+    display: flex;
+    gap: 4px;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.15);
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+.tab-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+}
+.tab-btn.active {
+    background: rgba(0, 229, 255, 0.12);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+/* =========================================
+   TAB CONTENT + PANELS
+   ========================================= */
+.tab-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.tab-panel {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+}
+.tab-panel.active { display: flex; }
+
+/* Guardian tab keeps existing chat layout */
+#tab-guardian { overflow: hidden; }
+
+/* Tool tabs are scrollable */
+#tab-scam-shield,
+#tab-budget-doctor,
+#tab-report-summarizer {
+    overflow-y: auto;
+}
+
+/* =========================================
+   TOOL PANEL (shared container)
+   ========================================= */
+.tool-panel {
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 700px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.tool-intro h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+.tool-intro p {
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.tool-textarea {
+    width: 100%;
+    min-height: 130px;
+    background: #1E293B;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: #fff;
+    font-size: 0.88rem;
+    font-family: 'Inter', sans-serif;
+    resize: vertical;
+    outline: none;
+    line-height: 1.6;
+    transition: border-color 0.3s ease;
+}
+.tool-textarea:focus { border-color: var(--accent-blue); }
+.report-textarea { min-height: 180px; }
+
+.tool-input {
+    width: 100%;
+    background: #1E293B;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #fff;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+.tool-input:focus { border-color: var(--accent-blue); }
+
+.tool-btn {
+    background: linear-gradient(135deg, var(--accent-blue), #0099bb);
+    color: #050816;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    align-self: flex-start;
+}
+.tool-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 229, 255, 0.3);
+}
+.tool-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.tool-results {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeIn 0.4s ease;
+}
+
+/* =========================================
+   SCORE CIRCLE (shared by Scam Shield + Budget Doctor)
+   ========================================= */
+.score-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.score-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid;
+    flex-shrink: 0;
+    transition: all 0.4s ease;
+}
+.score-circle span { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+.score-circle small { font-size: 0.65rem; color: var(--text-secondary); }
+
+.score-safe    { border-color: #00d4aa; color: #00d4aa; background: rgba(0,212,170,0.08); }
+.score-warning { border-color: #FFC107; color: #FFC107; background: rgba(255,193,7,0.08); }
+.score-danger  { border-color: #FF4D6D; color: #FF4D6D; background: rgba(255,77,109,0.08); }
+
+.score-details { display: flex; flex-direction: column; gap: 4px; }
+.score-label   { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.score-sublabel { font-size: 0.78rem; color: var(--text-secondary); }
+
+/* =========================================
+   SCAM SHIELD
+   ========================================= */
+.scam-warning-banner {
+    background: rgba(255, 77, 109, 0.15);
+    border: 2px solid #FF4D6D;
+    color: #FF4D6D;
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: center;
+    animation: dangerPulse 1.5s infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.advice-box {
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.advice-box strong { color: var(--accent-blue); }
+
+.actions-box ul { margin: 8px 0 0 18px; }
+.actions-box li { margin-bottom: 6px; color: var(--text-primary); }
+
+/* =========================================
+   BUDGET DOCTOR
+   ========================================= */
+.bd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.bd-input-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.bd-input-row label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.bd-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 0;
+}
+
+.bd-bar-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 120px;
+    align-items: center;
+    gap: 10px;
+}
+.bd-bar-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.bd-bar-track {
+    height: 8px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.bd-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.bd-bar-value {
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    text-align: right;
+    white-space: nowrap;
+}
+.bd-pct {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+/* =========================================
+   REPORT SUMMARIZER
+   ========================================= */
+.report-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--accent-blue);
+    margin-bottom: 10px;
+}
+
+.report-summary {
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    border-left: 3px solid var(--accent-blue);
+}
+.report-bullets {
+    font-size: 0.88rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+}
+
+.report-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.report-stat-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.02);
+}
+.report-stat-icon { font-size: 1.3rem; flex-shrink: 0; line-height: 1.4; }
+.report-stat-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+.report-stat-body  { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; }
+
+.numbers-card { border-color: rgba(0,229,255,0.2); }
+.numbers-card .report-stat-title { color: var(--accent-blue); }
+.risk-card    { border-color: rgba(255,77,109,0.2); }
+.risk-card .report-stat-title { color: #FF4D6D; }
+.opp-card     { border-color: rgba(0,212,170,0.2); }
+.opp-card .report-stat-title { color: #00d4aa; }
+.action-card  { border-color: rgba(76,175,80,0.2); }
+.action-card .report-stat-title { color: #4CAF50; }
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+@media (max-width: 600px) {
+    .bd-grid       { grid-template-columns: 1fr; }
+    .report-meta   { grid-template-columns: 1fr; }
+    .bd-bar-row    { grid-template-columns: 90px 1fr 90px; }
+    .tool-panel    { padding: 16px; }
+    .tab-btn       { padding: 6px 10px; font-size: 0.72rem; }
+}

@@ -98,37 +98,145 @@
             </div>
         </div>
         
-        <div id="chat-window" class="chat-window" role="log" aria-live="polite">
-            <div class="message ai-message">
-                <strong>Assalam-o-Alaikum!</strong> Main aapka premium AI maliati dost hoon. <br><br>
-                Main aapko scams se bachne aur paise ki bachat ke bare mein fast aur intelligent mashwara de sakta hoon. <br><br>
-                Bataiye, aaj main aapki kya madad karoon?
-            </div>
+        <!-- Tab Navigation -->
+        <div class="tab-nav" role="tablist">
+            <button class="tab-btn active" data-tab="guardian" role="tab">🛡️ Guardian</button>
+            <button class="tab-btn" data-tab="scam-shield" role="tab">🚨 Scam Shield</button>
+            <button class="tab-btn" data-tab="budget-doctor" role="tab">💊 Budget Doctor</button>
+            <button class="tab-btn" data-tab="report-summarizer" role="tab">📄 Summarizer</button>
         </div>
 
-        <!-- Agent Trace Overlay (Antigravity Logs) -->
-        <div id="agent-trace-container" class="agent-trace-container" style="display: none;">
-            <div class="trace-header">
-                <h3>🔍 Agent Reasoning (Antigravity)</h3>
-                <span id="close-trace" class="close-trace">&times;</span>
-            </div>
-            <div id="trace-logs" class="trace-logs"></div>
-        </div>
+        <!-- Tab Content -->
+        <div class="tab-content">
 
-        <div class="action-bar">
-            <button id="toggle-trace" class="trace-btn">Show Agent Thinking</button>
-        </div>
-
-        <div class="input-area">
-            <input type="file" id="image-input" accept="image/*" style="display: none;" aria-label="Upload screenshot">
-            <button id="upload-btn" class="icon-btn" title="Photo Bhejein (Screenshot)" aria-label="Upload Screenshot">📸</button>
-            <button id="mic-btn" class="icon-btn" title="Bol kar batayein (Voice)" aria-label="Voice Input">🎤</button>
-            <div class="input-wrapper">
-                <input type="text" id="user-input" placeholder="Apna sawal yahan likhein..." autocomplete="off" aria-label="Type your message">
+            <!-- ── TAB 1: Guardian (Main Chat) ── -->
+            <div id="tab-guardian" class="tab-panel active" role="tabpanel">
+                <div id="chat-window" class="chat-window" role="log" aria-live="polite">
+                    <div class="message ai-message">
+                        <strong>Assalam-o-Alaikum!</strong> Main aapka premium AI maliati dost hoon. <br><br>
+                        Main aapko scams se bachne aur paise ki bachat ke bare mein fast aur intelligent mashwara de sakta hoon. <br><br>
+                        Bataiye, aaj main aapki kya madad karoon?
+                    </div>
+                </div>
+                <div id="agent-trace-container" class="agent-trace-container" style="display: none;">
+                    <div class="trace-header">
+                        <h3>🔍 Agent Reasoning (Antigravity)</h3>
+                        <span id="close-trace" class="close-trace">&times;</span>
+                    </div>
+                    <div id="trace-logs" class="trace-logs"></div>
+                </div>
+                <div class="action-bar">
+                    <button id="toggle-trace" class="trace-btn">Show Agent Thinking</button>
+                </div>
+                <div class="input-area">
+                    <input type="file" id="image-input" accept="image/*" style="display: none;" aria-label="Upload screenshot">
+                    <button id="upload-btn" class="icon-btn" title="Photo Bhejein (Screenshot)" aria-label="Upload Screenshot">📸</button>
+                    <button id="mic-btn" class="icon-btn" title="Bol kar batayein (Voice)" aria-label="Voice Input">🎤</button>
+                    <div class="input-wrapper">
+                        <input type="text" id="user-input" placeholder="Apna sawal yahan likhein..." autocomplete="off" aria-label="Type your message">
+                    </div>
+                    <button id="send-btn" title="Message Bhejein" aria-label="Send Message">Send</button>
+                </div>
             </div>
-            <button id="send-btn" title="Message Bhejein" aria-label="Send Message">Send</button>
-        </div>
-    </div>
+
+            <!-- ── TAB 2: Scam Shield ── -->
+            <div id="tab-scam-shield" class="tab-panel" role="tabpanel">
+                <div class="tool-panel">
+                    <div class="tool-intro">
+                        <h2>🚨 Scam Shield</h2>
+                        <p>Paste any suspicious message, investment offer, or WhatsApp text. AI detects Pakistan-specific scam patterns instantly.</p>
+                    </div>
+                    <textarea id="scam-input" class="tool-textarea" placeholder="Paste suspicious content here…&#10;&#10;e.g. &quot;Mubarak ho! Aapko Rs.50,000 ki lottery lagi hai. Processing fee Rs.500 bhejen.&quot;&#10;&#10;Or paste an investment offer, job offer, or any suspicious message."></textarea>
+                    <button id="scam-analyze-btn" class="tool-btn">🔍 Analyze for Scams</button>
+                    <div id="scam-warning-banner" class="scam-warning-banner" style="display:none">
+                        🚨 HIGH SCAM RISK DETECTED — DO NOT PROCEED
+                    </div>
+                    <div id="scam-results" class="tool-results" style="display:none">
+                        <div class="score-row">
+                            <div class="score-circle" id="scam-score-circle">
+                                <span id="scam-score-num">0</span>
+                                <small>/100</small>
+                            </div>
+                            <div class="score-details">
+                                <div class="score-label" id="scam-score-label">Risk Level</div>
+                                <div id="scam-insight-label" class="score-sublabel"></div>
+                            </div>
+                        </div>
+                        <div id="scam-analysis" class="advice-box"></div>
+                        <div id="scam-actions" class="advice-box actions-box" style="display:none"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── TAB 3: Budget Doctor ── -->
+            <div id="tab-budget-doctor" class="tab-panel" role="tabpanel">
+                <div class="tool-panel">
+                    <div class="tool-intro">
+                        <h2>💊 Budget Doctor</h2>
+                        <p>Enter your monthly income and expenses for a complete financial health diagnosis with Pakistan-specific advice.</p>
+                    </div>
+                    <div class="bd-grid">
+                        <div class="bd-input-row">
+                            <label>💰 Monthly Income (PKR)</label>
+                            <input type="number" id="bd-income" placeholder="e.g. 80000" class="tool-input">
+                        </div>
+                        <div class="bd-input-row">
+                            <label>🏠 Rent / Housing</label>
+                            <input type="number" id="bd-rent" placeholder="e.g. 25000" class="tool-input">
+                        </div>
+                        <div class="bd-input-row">
+                            <label>🛒 Food &amp; Groceries</label>
+                            <input type="number" id="bd-food" placeholder="e.g. 15000" class="tool-input">
+                        </div>
+                        <div class="bd-input-row">
+                            <label>🚗 Transport</label>
+                            <input type="number" id="bd-transport" placeholder="e.g. 8000" class="tool-input">
+                        </div>
+                        <div class="bd-input-row">
+                            <label>⚡ Utilities (Bijli, Gas, Internet)</label>
+                            <input type="number" id="bd-utilities" placeholder="e.g. 5000" class="tool-input">
+                        </div>
+                        <div class="bd-input-row">
+                            <label>📦 Other Expenses</label>
+                            <input type="number" id="bd-other" placeholder="e.g. 10000" class="tool-input">
+                        </div>
+                    </div>
+                    <button id="budget-doctor-btn" class="tool-btn">💊 Diagnose My Budget</button>
+                    <div id="budget-doctor-results" class="tool-results" style="display:none">
+                        <div class="score-row">
+                            <div class="score-circle" id="health-score-circle">
+                                <span id="health-score-num">0</span>
+                                <small>/100</small>
+                            </div>
+                            <div class="score-details">
+                                <div class="score-label" id="health-score-label">Health Score</div>
+                                <div id="health-insight-label" class="score-sublabel"></div>
+                            </div>
+                        </div>
+                        <div id="bd-chart" class="bd-chart"></div>
+                        <div id="bd-analysis" class="advice-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── TAB 4: Report Summarizer ── -->
+            <div id="tab-report-summarizer" class="tab-panel" role="tabpanel">
+                <div class="tool-panel">
+                    <div class="tool-intro">
+                        <h2>📄 Report Summarizer</h2>
+                        <p>Paste any financial report, document, or article. Get a crisp executive summary in seconds — for busy Pakistani executives.</p>
+                    </div>
+                    <textarea id="report-input" class="tool-textarea report-textarea" placeholder="Paste your financial report, annual statement, news article, or any lengthy document here…&#10;&#10;The AI will extract the 5 most critical points, key numbers, main risk, and main opportunity."></textarea>
+                    <button id="report-summarize-btn" class="tool-btn">⚡ Summarize in 10 Seconds</button>
+                    <div id="report-results" class="tool-results" style="display:none">
+                        <div id="report-summary" class="report-summary"></div>
+                        <div id="report-meta" class="report-meta"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- end .tab-content -->
+    </div><!-- end .chat-container -->
     <script src="script.js"></script>
 </body>
 </html>
