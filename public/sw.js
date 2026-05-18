@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-guardian-v1';
+const CACHE_NAME = 'ai-guardian-v7';
 const STATIC_ASSETS = ['/', '/index.html', '/style.css', '/script.js', '/manifest.json'];
 
 self.addEventListener('install', (event) => {

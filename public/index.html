@@ -3,154 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Maliati Dost | Premium AI Assistant</title>
-    
-    <!-- SEO & Social Media Metadata -->
-    <meta name="description" content="Pakistan's Premium AI Financial Assistant for Scam Detection, Budgeting, and Banking Safety.">
-    <meta name="keywords" content="AI, Finance, Pakistan, Scam Detection, Budget Planner, Banking Safety, Urdu AI">
-    <meta property="og:title" content="AI Maliati Dost - Your Financial Guardian">
-    <meta property="og:description" content="Detect scams and plan your budget in simple Urdu with our advanced AI assistant.">
-    <meta property="og:image" content="https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/shield_with_heart/default/48px.svg">
-    <meta name="twitter:card" content="summary_large_image">
-
-    <!-- Favicon (Using SVG Shield) -->
+    <title>AI Financial Guardian | Dashboard</title>
+    <meta name="description" content="Pakistan's Premium AI Financial Dashboard — Scam Detection, Budget Analysis, and 5-Agent Intelligence Pipeline.">
+    <meta name="keywords" content="AI, Finance, Pakistan, Scam Detection, Budget Planner, Antigravity">
+    <meta property="og:title" content="AI Financial Guardian">
+    <meta property="og:description" content="World-class financial intelligence powered by Google Antigravity.">
+    <meta name="theme-color" content="#0066FF">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@48,400,1,0" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@48,400,1,0">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#00E5FF">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="chat-container" role="main">
-        <header>
-            <div class="logo-section" aria-label="App Logo and Title">
-                <div class="ai-logo" aria-hidden="true"><span class="material-symbols-rounded">shield_with_heart</span></div>
-                <div class="header-text">
-                    <h1>AI Maliati Dost</h1>
-                    <p>Pakistani Financial Safety Assistant</p>
+<div class="app" id="app">
+
+    <!-- ══ HEADER ══════════════════════════════════════════ -->
+    <header class="app-header" role="banner">
+        <div class="header-brand">
+            <div class="brand-icon" aria-hidden="true">
+                <span class="material-symbols-rounded">shield_with_heart</span>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">AI Financial Guardian</span>
+                <span class="brand-live"><span class="live-dot"></span>Live</span>
+            </div>
+        </div>
+
+        <nav class="header-nav" role="tablist" aria-label="Main Navigation">
+            <button class="nav-tab active" data-tab="guardian"     role="tab" aria-selected="true">🛡️ Guardian</button>
+            <button class="nav-tab"         data-tab="scam-shield"  role="tab" aria-selected="false">🚨 Scam Shield</button>
+            <button class="nav-tab"         data-tab="budget-doctor" role="tab" aria-selected="false">💊 Budget Doctor</button>
+            <button class="nav-tab"         data-tab="report-summarizer" role="tab" aria-selected="false">📄 Summarizer</button>
+        </nav>
+
+        <div class="header-right">
+            <div class="hstat-row">
+                <div class="hstat">
+                    <span class="hstat-l">Stock</span>
+                    <span class="hstat-v" id="stat-stock">Low (12)</span>
+                </div>
+                <div class="hstat">
+                    <span class="hstat-l">Risk</span>
+                    <span class="hstat-v" id="stat-risk">Medium</span>
+                </div>
+                <div class="hstat">
+                    <span class="hstat-l">Budget</span>
+                    <span class="hstat-v" id="stat-budget">₨1,250</span>
                 </div>
             </div>
-            <div class="header-btns">
-                <button id="mode-toggle-btn" class="mode-toggle-btn" aria-label="Toggle Antigravity Mode" title="Switch between Standard Gemini and Google Antigravity (Vertex AI) mode">💬 Standard</button>
-                <button id="budget-btn" class="secondary-btn" aria-label="Open Budget Planner">📊 Budget</button>
-                <button id="clear-btn" class="clear-btn" aria-label="Clear Chat History">Clear History</button>
-            </div>
-        </header>
-        
-        <!-- Budget Modal -->
-        <div id="budget-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modal-title">Maliati Planner 📊</h2>
-                    <span class="close-modal" role="button" aria-label="Close Modal">&times;</span>
-                </div>
-                <div class="modal-body">
-                    <label for="income-input">Apni mahana aamdani (Monthly Income) likhein:</label>
-                    <input type="number" id="income-input" placeholder="e.g. 50000" class="modal-input">
-                    <div id="budget-results" class="budget-results" style="display: none;" aria-live="polite">
-                        <div class="budget-bar-item">
-                            <span>Zarooriyat (50%):</span>
-                            <div class="bar-container" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"><div id="bar-needs" class="bar needs"></div></div>
-                            <b id="val-needs">0</b>
+            <button id="theme-toggle-btn" class="hdr-icon-btn theme-btn" title="Toggle dark/light mode" aria-label="Toggle theme">🌙</button>
+            <button id="budget-btn" class="hdr-icon-btn" title="Budget Planner" aria-label="Open Budget Planner">📊</button>
+        </div>
+    </header>
+
+    <!-- ══ TICKER ═══════════════════════════════════════════ -->
+    <div class="ticker-wrap" role="alert" aria-live="polite">
+        <div class="ticker">
+            <span class="ticker-item">⚠️ Punjab: New WhatsApp Lottery scam reported — do NOT share OTP</span>
+            <span class="ticker-item">🛑 FBR never asks for tax payments via SMS links</span>
+            <span class="ticker-item">⚠️ BISP: Fake calls asking for processing fees — report to 0800-26477</span>
+            <span class="ticker-item">🛑 BANKING: Never share your OTP with anyone over the phone</span>
+            <span class="ticker-item">⚠️ Aitkaf Investment: Verified Ponzi scheme — avoid all variants</span>
+        </div>
+    </div>
+
+    <!-- ══ MAIN CONTENT ══════════════════════════════════════ -->
+    <main class="app-main" id="app-main">
+
+        <!-- ── TAB 1: GUARDIAN ─────────────────────────────── -->
+        <div id="tab-guardian" class="tab-panel active" role="tabpanel">
+            <div class="page-scroll">
+                <div class="page-content">
+
+                    <!-- Input Section -->
+                    <section class="g-input-section" aria-label="Analysis Input">
+                        <div class="g-input-top">
+                            <div class="g-input-heading">
+                                <h1 class="g-title">⚡ Antigravity Intelligence</h1>
+                                <p class="g-subtitle">5-agent AI pipeline analyzes financial data, news, and reports in real-time</p>
+                            </div>
+                            <button id="mode-toggle-btn" class="mode-toggle-btn" aria-label="Toggle AI mode">💬 Standard</button>
                         </div>
-                        <div class="budget-bar-item">
-                            <span>Khwahishat (30%):</span>
-                            <div class="bar-container" role="progressbar" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100"><div id="bar-wants" class="bar wants"></div></div>
-                            <b id="val-wants">0</b>
+                        <textarea
+                            id="guardian-input"
+                            class="g-textarea"
+                            rows="5"
+                            placeholder="Paste financial news, market report, investment offer, or any suspicious message…&#10;&#10;e.g. &quot;State Bank of Pakistan raises interest rates by 150bps to counter inflation pressure…&quot;"
+                            aria-label="Input for analysis"
+                        ></textarea>
+                        <div class="g-input-actions">
+                            <div class="g-actions-left">
+                                <button id="guardian-demo-btn" class="g-demo-btn" title="Load a demo input">🎯 Try Demo</button>
+                            </div>
+                            <div class="g-actions-right">
+                                <input type="file" id="guardian-image-input" accept="image/*" style="display:none" aria-label="Upload image">
+                                <button id="guardian-upload-btn" class="g-icon-btn" title="Upload screenshot" aria-label="Upload Screenshot">📸</button>
+                                <button id="guardian-mic-btn"    class="g-icon-btn" title="Voice input" aria-label="Voice Input">🎙️</button>
+                                <button id="guardian-analyze-btn" class="g-analyze-btn" aria-label="Run Analysis">⚡ ANALYZE</button>
+                            </div>
                         </div>
-                        <div class="budget-bar-item">
-                            <span>Bachat (20%):</span>
-                            <div class="bar-container" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"><div id="bar-savings" class="bar savings"></div></div>
-                            <b id="val-savings">0</b>
+                    </section>
+
+                    <!-- Pipeline Progress -->
+                    <section id="guardian-pipeline" class="g-pipeline-section" style="display:none" aria-label="Agent Pipeline Progress" aria-live="polite">
+                        <div class="g-pipeline-hdr">
+                            <span class="g-label">AGENT PIPELINE</span>
+                            <span id="g-pipeline-id" class="g-pipeline-id-text"></span>
                         </div>
-                        <div id="ai-budget-tip" class="ai-tip" style="display: none;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="ticker-wrap" role="alert" aria-live="assertive">
-            <div class="ticker">
-                <span class="ticker-item">⚠️ WARNING: New WhatsApp Lottery scam reported in Punjab.</span>
-                <span class="ticker-item">🛑 ALERT: FBR never asks for tax payments via SMS links.</span>
-                <span class="ticker-item">⚠️ BISP: Beware of fake calls asking for processing fees.</span>
-                <span class="ticker-item">🛑 BANKING: Never share your OTP with anyone over the phone.</span>
-            </div>
-        </div>
+                        <div class="g-progress-track" role="progressbar" aria-label="Pipeline progress">
+                            <div class="g-progress-step" data-idx="0"><div class="g-dot"></div><span>Ingestion</span></div>
+                            <div class="g-progress-line"></div>
+                            <div class="g-progress-step" data-idx="1"><div class="g-dot"></div><span>Insight</span></div>
+                            <div class="g-progress-line"></div>
+                            <div class="g-progress-step" data-idx="2"><div class="g-dot"></div><span>Impact</span></div>
+                            <div class="g-progress-line"></div>
+                            <div class="g-progress-step" data-idx="3"><div class="g-dot"></div><span>Actions</span></div>
+                            <div class="g-progress-line"></div>
+                            <div class="g-progress-step" data-idx="4"><div class="g-dot"></div><span>Execution</span></div>
+                        </div>
+                        <div id="g-agents-list" class="g-agents-list" aria-label="Agent status list"></div>
+                    </section>
 
-        <!-- Live System Dashboard (Step 2) -->
-        <div class="system-dashboard" id="system-dashboard">
-            <div class="stat-card">
-                <span class="stat-label">Stock (LHR)</span>
-                <span class="stat-value" id="stat-stock">Low (12)</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Risk Level</span>
-                <span class="stat-value" id="stat-risk">Medium</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Budget</span>
-                <span class="stat-value" id="stat-budget">$1,250</span>
-            </div>
-        </div>
-        
-        <!-- Tab Navigation -->
-        <div class="tab-nav" role="tablist">
-            <button class="tab-btn active" data-tab="guardian" role="tab">🛡️ Guardian</button>
-            <button class="tab-btn" data-tab="scam-shield" role="tab">🚨 Scam Shield</button>
-            <button class="tab-btn" data-tab="budget-doctor" role="tab">💊 Budget Doctor</button>
-            <button class="tab-btn" data-tab="report-summarizer" role="tab">📄 Summarizer</button>
-        </div>
+                    <!-- Results Section -->
+                    <section id="guardian-results" class="g-results-section" style="display:none" aria-label="Analysis Results" aria-live="polite">
 
-        <!-- Tab Content -->
-        <div class="tab-content">
+                        <!-- Row 1: Insight + Severity -->
+                        <div class="g-row g-insight-row" id="g-insight-row"></div>
 
-            <!-- ── TAB 1: Guardian (Main Chat) ── -->
-            <div id="tab-guardian" class="tab-panel active" role="tabpanel">
-                <div id="chat-window" class="chat-window" role="log" aria-live="polite">
-                    <div class="message ai-message">
-                        <strong>Assalam-o-Alaikum!</strong> Main aapka premium AI maliati dost hoon. <br><br>
-                        Main aapko scams se bachne aur paise ki bachat ke bare mein fast aur intelligent mashwara de sakta hoon. <br><br>
-                        Bataiye, aaj main aapki kya madad karoon?
-                    </div>
-                </div>
-                <div id="agent-trace-container" class="agent-trace-container" style="display: none;">
-                    <div class="trace-header">
-                        <h3>🔍 Agent Reasoning (Antigravity)</h3>
-                        <span id="close-trace" class="close-trace">&times;</span>
-                    </div>
-                    <div id="trace-logs" class="trace-logs"></div>
-                </div>
-                <div class="action-bar">
-                    <button id="toggle-trace" class="trace-btn">Show Agent Thinking</button>
-                </div>
-                <div class="input-area">
-                    <input type="file" id="image-input" accept="image/*" style="display: none;" aria-label="Upload screenshot">
-                    <button id="upload-btn" class="icon-btn" title="Photo Bhejein (Screenshot)" aria-label="Upload Screenshot">📸</button>
-                    <button id="mic-btn" class="icon-btn" title="Bol kar batayein (Voice)" aria-label="Voice Input">🎤</button>
-                    <div class="input-wrapper">
-                        <input type="text" id="user-input" placeholder="Apna sawal yahan likhein..." autocomplete="off" aria-label="Type your message">
-                    </div>
-                    <button id="send-btn" title="Message Bhejein" aria-label="Send Message">Send</button>
-                </div>
-            </div>
+                        <!-- Row 2: Impact Grid -->
+                        <div class="g-section-hdr"><span class="g-label">MARKET IMPACT</span></div>
+                        <div class="g-impact-grid" id="g-impact-grid"></div>
 
-            <!-- ── TAB 2: Scam Shield ── -->
-            <div id="tab-scam-shield" class="tab-panel" role="tabpanel">
-                <div class="tool-panel">
-                    <div class="tool-intro">
-                        <h2>🚨 Scam Shield</h2>
-                        <p>Paste any suspicious message, investment offer, or WhatsApp text. AI detects Pakistan-specific scam patterns instantly.</p>
+                        <!-- Row 3: Action Plan -->
+                        <div id="g-actions-section" class="g-actions-section"></div>
+
+                        <!-- Row 4: Execution Report -->
+                        <div id="g-execution-section" class="g-execution-section"></div>
+
+                        <!-- Footer -->
+                        <div class="g-results-footer">
+                            <button id="g-export-btn" class="g-export-btn">📥 Export Agent Trace JSON</button>
+                            <span id="g-total-time" class="g-total-time"></span>
+                        </div>
+
+                    </section>
+
+                </div><!-- end .page-content -->
+            </div><!-- end .page-scroll -->
+        </div><!-- end #tab-guardian -->
+
+        <!-- ── TAB 2: SCAM SHIELD ──────────────────────────── -->
+        <div id="tab-scam-shield" class="tab-panel" role="tabpanel">
+            <div class="page-scroll">
+                <div class="page-content tool-page">
+                    <div class="tool-header">
+                        <div class="tool-icon-wrap tool-red">🚨</div>
+                        <div>
+                            <h2 class="tool-title">Scam Shield</h2>
+                            <p class="tool-subtitle">Paste any suspicious message, investment offer, or WhatsApp text. AI detects Pakistan-specific scam patterns instantly.</p>
+                        </div>
                     </div>
-                    <textarea id="scam-input" class="tool-textarea" placeholder="Paste suspicious content here…&#10;&#10;e.g. &quot;Mubarak ho! Aapko Rs.50,000 ki lottery lagi hai. Processing fee Rs.500 bhejen.&quot;&#10;&#10;Or paste an investment offer, job offer, or any suspicious message."></textarea>
-                    <button id="scam-analyze-btn" class="tool-btn">🔍 Analyze for Scams</button>
-                    <div id="scam-warning-banner" class="scam-warning-banner" style="display:none">
-                        🚨 HIGH SCAM RISK DETECTED — DO NOT PROCEED
+
+                    <textarea
+                        id="scam-input"
+                        class="tool-textarea"
+                        placeholder="Paste suspicious content here…&#10;&#10;e.g. &quot;Mubarak ho! Aapko ₨50,000 ki lottery lagi hai. Processing fee ₨500 bhejen.&quot;&#10;&#10;Or paste an investment offer, job offer, or any suspicious message."
+                        aria-label="Suspicious content to analyze"
+                    ></textarea>
+
+                    <button id="scam-analyze-btn" class="tool-btn tool-btn-red">🔍 SCAN FOR SCAM</button>
+
+                    <!-- High risk banner -->
+                    <div id="scam-warning-banner" class="scam-banner scam-banner-danger" style="display:none" role="alert">
+                        <span class="banner-icon">⚠️</span>
+                        <span id="scam-banner-text">HIGH SCAM RISK DETECTED — DO NOT PROCEED</span>
                     </div>
+
+                    <!-- Results -->
                     <div id="scam-results" class="tool-results" style="display:none">
                         <div class="score-row">
                             <div class="score-circle" id="scam-score-circle">
@@ -159,7 +191,7 @@
                             </div>
                             <div class="score-details">
                                 <div class="score-label" id="scam-score-label">Risk Level</div>
-                                <div id="scam-insight-label" class="score-sublabel"></div>
+                                <div class="score-sublabel" id="scam-insight-label"></div>
                             </div>
                         </div>
                         <div id="scam-analysis" class="advice-box"></div>
@@ -167,41 +199,31 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- ── TAB 3: Budget Doctor ── -->
-            <div id="tab-budget-doctor" class="tab-panel" role="tabpanel">
-                <div class="tool-panel">
-                    <div class="tool-intro">
-                        <h2>💊 Budget Doctor</h2>
-                        <p>Enter your monthly income and expenses for a complete financial health diagnosis with Pakistan-specific advice.</p>
+        <!-- ── TAB 3: BUDGET DOCTOR ────────────────────────── -->
+        <div id="tab-budget-doctor" class="tab-panel" role="tabpanel">
+            <div class="page-scroll">
+                <div class="page-content tool-page">
+                    <div class="tool-header">
+                        <div class="tool-icon-wrap tool-green">💊</div>
+                        <div>
+                            <h2 class="tool-title">Budget Doctor</h2>
+                            <p class="tool-subtitle">Enter your monthly income and expenses for a complete financial health diagnosis with Pakistan-specific advice.</p>
+                        </div>
                     </div>
+
                     <div class="bd-grid">
-                        <div class="bd-input-row">
-                            <label>💰 Monthly Income (PKR)</label>
-                            <input type="number" id="bd-income" placeholder="e.g. 80000" class="tool-input">
-                        </div>
-                        <div class="bd-input-row">
-                            <label>🏠 Rent / Housing</label>
-                            <input type="number" id="bd-rent" placeholder="e.g. 25000" class="tool-input">
-                        </div>
-                        <div class="bd-input-row">
-                            <label>🛒 Food &amp; Groceries</label>
-                            <input type="number" id="bd-food" placeholder="e.g. 15000" class="tool-input">
-                        </div>
-                        <div class="bd-input-row">
-                            <label>🚗 Transport</label>
-                            <input type="number" id="bd-transport" placeholder="e.g. 8000" class="tool-input">
-                        </div>
-                        <div class="bd-input-row">
-                            <label>⚡ Utilities (Bijli, Gas, Internet)</label>
-                            <input type="number" id="bd-utilities" placeholder="e.g. 5000" class="tool-input">
-                        </div>
-                        <div class="bd-input-row">
-                            <label>📦 Other Expenses</label>
-                            <input type="number" id="bd-other" placeholder="e.g. 10000" class="tool-input">
-                        </div>
+                        <div class="bd-row"><label>💰 Monthly Income (₨)</label><input type="number" id="bd-income"    class="tool-input" placeholder="e.g. 80000"></div>
+                        <div class="bd-row"><label>🏠 Rent / Housing</label>    <input type="number" id="bd-rent"      class="tool-input" placeholder="e.g. 25000"></div>
+                        <div class="bd-row"><label>🛒 Food &amp; Groceries</label>   <input type="number" id="bd-food"      class="tool-input" placeholder="e.g. 15000"></div>
+                        <div class="bd-row"><label>🚗 Transport</label>          <input type="number" id="bd-transport" class="tool-input" placeholder="e.g. 8000"></div>
+                        <div class="bd-row"><label>⚡ Utilities (Bijli, Gas)</label><input type="number" id="bd-utilities" class="tool-input" placeholder="e.g. 5000"></div>
+                        <div class="bd-row"><label>📦 Other Expenses</label>    <input type="number" id="bd-other"     class="tool-input" placeholder="e.g. 10000"></div>
                     </div>
-                    <button id="budget-doctor-btn" class="tool-btn">💊 Diagnose My Budget</button>
+
+                    <button id="budget-doctor-btn" class="tool-btn tool-btn-green">💊 DIAGNOSE MY BUDGET</button>
+
                     <div id="budget-doctor-results" class="tool-results" style="display:none">
                         <div class="score-row">
                             <div class="score-circle" id="health-score-circle">
@@ -210,7 +232,7 @@
                             </div>
                             <div class="score-details">
                                 <div class="score-label" id="health-score-label">Health Score</div>
-                                <div id="health-insight-label" class="score-sublabel"></div>
+                                <div class="score-sublabel" id="health-insight-label"></div>
                             </div>
                         </div>
                         <div id="bd-chart" class="bd-chart"></div>
@@ -218,25 +240,96 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- ── TAB 4: Report Summarizer ── -->
-            <div id="tab-report-summarizer" class="tab-panel" role="tabpanel">
-                <div class="tool-panel">
-                    <div class="tool-intro">
-                        <h2>📄 Report Summarizer</h2>
-                        <p>Paste any financial report, document, or article. Get a crisp executive summary in seconds — for busy Pakistani executives.</p>
+        <!-- ── TAB 4: REPORT SUMMARIZER ───────────────────── -->
+        <div id="tab-report-summarizer" class="tab-panel" role="tabpanel">
+            <div class="page-scroll">
+                <div class="page-content tool-page">
+                    <div class="tool-header">
+                        <div class="tool-icon-wrap tool-blue">📄</div>
+                        <div>
+                            <h2 class="tool-title">Report Summarizer</h2>
+                            <p class="tool-subtitle">Paste any financial report, document, or article. Get a crisp executive summary in seconds — for busy Pakistani executives.</p>
+                        </div>
                     </div>
-                    <textarea id="report-input" class="tool-textarea report-textarea" placeholder="Paste your financial report, annual statement, news article, or any lengthy document here…&#10;&#10;The AI will extract the 5 most critical points, key numbers, main risk, and main opportunity."></textarea>
-                    <button id="report-summarize-btn" class="tool-btn">⚡ Summarize in 10 Seconds</button>
+
+                    <textarea
+                        id="report-input"
+                        class="tool-textarea report-textarea"
+                        placeholder="Paste your financial report, annual statement, news article, or any lengthy document here…&#10;&#10;The AI will extract the 5 most critical points, key numbers, main risk, and main opportunity."
+                        aria-label="Document to summarize"
+                    ></textarea>
+
+                    <button id="report-summarize-btn" class="tool-btn tool-btn-blue">⚡ SUMMARIZE IN 10 SECONDS</button>
+
                     <div id="report-results" class="tool-results" style="display:none">
                         <div id="report-summary" class="report-summary"></div>
-                        <div id="report-meta" class="report-meta"></div>
+                        <div id="report-meta"    class="report-meta"></div>
                     </div>
                 </div>
             </div>
+        </div>
 
-        </div><!-- end .tab-content -->
-    </div><!-- end .chat-container -->
-    <script src="script.js"></script>
+    </main>
+
+    <!-- ══ FOOTER ════════════════════════════════════════════ -->
+    <footer class="app-footer" role="contentinfo">
+        <span>Built with <strong>Google Antigravity</strong> · AI Financial Guardian · H-2026</span>
+    </footer>
+
+    <!-- ══ MOBILE BOTTOM NAV ════════════════════════════════ -->
+    <nav class="mobile-nav" role="tablist" aria-label="Mobile Navigation">
+        <button class="mob-tab active" data-tab="guardian"          role="tab" aria-selected="true">
+            <span class="mob-icon">🛡️</span>Guardian
+        </button>
+        <button class="mob-tab" data-tab="scam-shield"              role="tab" aria-selected="false">
+            <span class="mob-icon">🚨</span>Scam
+        </button>
+        <button class="mob-tab" data-tab="budget-doctor"            role="tab" aria-selected="false">
+            <span class="mob-icon">💊</span>Budget
+        </button>
+        <button class="mob-tab" data-tab="report-summarizer"        role="tab" aria-selected="false">
+            <span class="mob-icon">📄</span>Report
+        </button>
+    </nav>
+
+    <!-- ══ BUDGET MODAL ══════════════════════════════════════ -->
+    <div id="budget-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Maliati Planner 📊</h2>
+                <span class="close-modal" role="button" aria-label="Close Modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <label for="income-input">Apni mahana aamdani (Monthly Income) likhein:</label>
+                <input type="number" id="income-input" placeholder="e.g. 50000" class="modal-input" aria-label="Monthly income">
+                <div id="budget-results" class="budget-results" style="display:none" aria-live="polite">
+                    <div class="budget-bar-item">
+                        <span>Zarooriyat (50%):<b id="val-needs">₨0</b></span>
+                        <div class="bar-container" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">
+                            <div id="bar-needs" class="bar needs" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="budget-bar-item">
+                        <span>Khwahishat (30%):<b id="val-wants">₨0</b></span>
+                        <div class="bar-container" role="progressbar" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100">
+                            <div id="bar-wants" class="bar wants" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="budget-bar-item">
+                        <span>Bachat (20%):<b id="val-savings">₨0</b></span>
+                        <div class="bar-container" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
+                            <div id="bar-savings" class="bar savings" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div id="ai-budget-tip" class="ai-tip" style="display:none"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- end .app -->
+<script src="script.js"></script>
 </body>
 </html>
