@@ -1,65 +1,49 @@
 require('dotenv').config();
-const express = require('express');
+const express    = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const path = require('path');
-const fs = require('fs');
+const path       = require('path');
+const fs         = require('fs');
 const { randomUUID } = require('crypto');
 
 const app = express();
 
-// ===============================
-// Data Ingestion (Challenge 1)
-// ===============================
-let inventoryData = "";
-let newsData = "";
-let feedData = "";
-let reportData = "";
-let forecastData = "";
-
-try {
-  inventoryData = fs.readFileSync(path.join(__dirname, 'data', 'inventory.csv'), 'utf8');
-  newsData = fs.readFileSync(path.join(__dirname, 'data', 'news.json'), 'utf8');
-  feedData = fs.readFileSync(path.join(__dirname, 'data', 'feed.json'), 'utf8');
-  reportData = fs.readFileSync(path.join(__dirname, 'data', 'report.json'), 'utf8');
-  forecastData = fs.readFileSync(path.join(__dirname, 'data', 'table.json'), 'utf8');
-} catch (err) {
-  console.error("Error reading data files:", err.message);
+// ════════════════════════════════════════════════════
+// Multi-Source Data Ingestion (Challenge 1)
+// ════════════════════════════════════════════════════
+function loadData(filename) {
+    try { return fs.readFileSync(path.join(__dirname, 'data', filename), 'utf8'); }
+    catch { return ''; }
 }
+const inventoryData = loadData('inventory.csv');
+const newsData      = loadData('news.json');
+const feedData      = loadData('feed.json');
+const reportData    = loadData('report.json');
+const forecastData  = loadData('table.json');
 
-// ===============================
-// Middleware
-// ===============================
+// ════════════════════════════════════════════════════
+// Middleware & Static Files
+// ════════════════════════════════════════════════════
 app.use(express.json({ limit: '10mb' }));
-
-// Serve static files from the 'public' directory
 const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
+app.get('/', (_req, res) => res.sendFile(path.join(publicPath, 'index.html')));
 
-// Explicit Root Route
-app.get('/', (req, res) => {
-  res.sendFile(path.join(publicPath, 'index.html'));
-});
-
-// ===============================
-// Load API Keys from Environment
-// ===============================
+// ════════════════════════════════════════════════════
+// API Key Pool (up to 3 keys with rotation)
+// ════════════════════════════════════════════════════
 const apiKeys = [
-  process.env.GEMINI_API_KEY_1,
-  process.env.GEMINI_API_KEY_2,
-  process.env.GEMINI_API_KEY_3
+    process.env.GEMINI_API_KEY_1,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3
 ].filter(Boolean);
 
-let currentKeyIndex = 0;
+let keyIndex = 0;
+function rotateKey() { if (apiKeys.length > 1) keyIndex = (keyIndex + 1) % apiKeys.length; }
+function currentKey() { return apiKeys[keyIndex]; }
 
-function rotateKey() {
-  if (apiKeys.length > 1) {
-    currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
-  }
-}
-
-// ===============================
-// AI System Prompt (Challenge 1)
-// ===============================
+// ════════════════════════════════════════════════════
+// Standard Chat — POST /chat
+// ════════════════════════════════════════════════════
 const SYSTEM_PROMPT = `
 You are the "Project Master Intelligence" (PMI) - a Multi-Agent Orchestrator powered by Google Antigravity.
 To fulfill Challenge 1, you act as a collaborative team:
@@ -73,528 +57,312 @@ AVAILABLE TOOLS (Simulated):
 - [System State Manager]: Updates Dashboard metrics (Stock, Risk, Budget).
 
 CONTEXT (Real-time Multi-Source System Data):
---- INVENTORY DATA (CSV) ---
+--- INVENTORY DATA ---
 ${inventoryData}
---- MARKET NEWS (JSON) ---
+--- MARKET NEWS ---
 ${newsData}
---- LIVE FEED (JSON) ---
+--- LIVE FEED ---
 ${feedData}
---- FINANCIAL REPORT (JSON) ---
+--- FINANCIAL REPORT ---
 ${reportData}
---- FORECAST DATA (JSON) ---
+--- FORECAST DATA ---
 ${forecastData}
 
-CRITICAL: You MUST respond in valid JSON format ONLY.
-JSON Structure:
+CRITICAL: Respond in valid JSON ONLY.
 {
-  "display_text": "Hinglish response (8-12 lines, bullet points, professional)",
-  "scam_score": number (0-100),
-  "insight": "Key fact extracted (e.g. from a PDF report or News)",
+  "display_text": "Hinglish response (8-12 lines, bullet points)",
+  "scam_score": 0,
+  "insight": "Key extracted fact",
   "impact": "Real-world consequence",
-  "recommended_actions": [
-    {"id": "string", "label": "string", "type": "draft|simulation|message"}
-  ],
+  "recommended_actions": [{"id":"","label":"","type":"draft|simulation|message"}],
   "agent_trace": {
-    "workplan": "[Coordinator] Initializing mission... [Invoking Analyst to parse unstructured content]",
-    "tasks": [
-      "[Coordinator] Task 1: Analyze user input type (Text/URL/Image)",
-      "[Analyst] Task 2: Use [Antigravity Web/PDF Parser] to extract signals",
-      "[Analyst] Task 3: Cross-reference with [Market Intelligence Engine]",
-      "[Executor] Task 4: Simulate actions and update [System State Manager]"
-    ],
-    "reasoning": "[Analyst] Extracted 'X' from input. Cross-referenced with Inventory: Stock is 'Y'. Contradiction found: 'Z'.",
-    "decision_flow": "Input -> [Parser] -> [Analyst] -> [Coordinator] -> [Executor]",
-    "action_execution": "[Executor] Triggering [System State Manager]... [Simulated Action: Done]"
+    "workplan": "...",
+    "tasks": ["..."],
+    "reasoning": "...",
+    "decision_flow": "...",
+    "action_execution": "..."
   },
   "system_state_change": {
-    "before": "Current state",
-    "after": "Updated state",
-    "metrics_update": {"stock": "number|string", "risk": "number", "budget": "string"}
+    "before": "...", "after": "...",
+    "metrics_update": {"stock":"","risk":0,"budget":""}
   },
-  "fia_complaint_draft": "FIA draft if scam_score > 30"
+  "fia_complaint_draft": ""
 }
-
-Guidelines:
-- Language: Hinglish.
-- Content Understanding: If a user provides a URL or mentions a "report", use the [Antigravity Web/PDF Parser] persona to "extract" insights.
-- Autonomy: Show clear tool usage in the tasks and reasoning.
+Language: Hinglish. Show clear tool usage in tasks and reasoning.
 `;
 
-// Initialize chat history (Resets on Vercel cold starts)
 let chatHistory = [];
 
-// ===============================
-// Routes
-// ===============================
-
-// Health Check / Diagnostic Route
-app.get('/api-status', (req, res) => {
-  res.json({
-    status: "online",
-    keys_found: apiKeys.length,
+app.get('/api-status', (_req, res) => res.json({
+    status: 'online', keys_found: apiKeys.length,
     environment: process.env.NODE_ENV || 'production',
     model: 'gemini-flash-lite-latest'
-  });
-});
+}));
 
-// Main Chat Route
 app.post('/chat', async (req, res) => {
-  const { message, image } = req.body;
-
-  if (!message && !image) {
-    return res.status(400).json({ error: 'Message or image is required.' });
-  }
-
-  // Handle Manual History Clear
-  if (message && message.toLowerCase() === '___clear_history___') {
-    chatHistory = [];
-    return res.json({ reply: 'History cleared.' });
-  }
-
-  if (apiKeys.length === 0) {
-    return res.status(500).json({ error: "API Keys not configured. Check Environment Variables." });
-  }
-
-  let lastError = "Unknown error";
-
-  for (let attempts = 0; attempts < apiKeys.length; attempts++) {
-    const currentKey = apiKeys[currentKeyIndex];
-    
-    try {
-      const genAI = new GoogleGenerativeAI(currentKey);
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-flash-lite-latest',
-        systemInstruction: SYSTEM_PROMPT
-      });
-
-      const chat = model.startChat({
-        history: chatHistory,
-        generationConfig: { 
-          maxOutputTokens: 2048, 
-          temperature: 0.1, // Lower temperature for more reliable JSON
-          responseMimeType: "application/json" // Force JSON output
-        }
-      });
-
-      let result;
-      if (image) {
-        const matches = image.match(/^data:(.+);base64,(.+)$/);
-        if (!matches) throw new Error('Invalid image format.');
-        
-        result = await chat.sendMessage([
-          { inlineData: { data: matches[2], mimeType: matches[1] } },
-          message || 'Analyze this content and provide an agentic response.'
-        ]);
-      } else {
-        result = await chat.sendMessage(message);
-      }
-
-      const response = await result.response;
-      let rawText = response.text();
-      
-      // IMPROVED CLEANING LOGIC: Extract JSON if it's wrapped in text or markdown
-      let structuredResponse;
-      try {
-        // Try direct parse first
-        structuredResponse = JSON.parse(rawText);
-      } catch (e) {
-        // Try extracting JSON from markdown blocks
-        const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
-          try {
-            structuredResponse = JSON.parse(jsonMatch[1]);
-          } catch (e2) {
-            // Last resort: find first { and last }
-            const firstBrace = rawText.indexOf('{');
-            const lastBrace = rawText.lastIndexOf('}');
-            if (firstBrace !== -1 && lastBrace !== -1) {
-              try {
-                structuredResponse = JSON.parse(rawText.substring(firstBrace, lastBrace + 1));
-              } catch (e3) {
-                console.error("Failed to parse extracted JSON:", e3);
-              }
-            }
-          }
-        }
-      }
-
-      if (!structuredResponse) {
-        console.error("JSON Parse Error. Raw text was:", rawText);
-        structuredResponse = {
-          display_text: rawText.substring(0, 500),
-          scam_score: 0,
-          insight: "Data processing error",
-          impact: "Technical issue",
-          recommended_actions: [],
-          agent_trace: ["Error parsing structured output"]
-        };
-      }
-
-      // Update history
-      // We store the display_text for the model to keep context, but we keep the system instructions in mind
-      chatHistory.push({ role: 'user', parts: [{ text: message || '[Image]' }] });
-      chatHistory.push({ role: 'model', parts: [{ text: JSON.stringify(structuredResponse) }] });
-      if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-
-      // Add 'reply' field for backward compatibility
-      structuredResponse.reply = structuredResponse.display_text;
-
-      return res.json(structuredResponse);
-
-    } catch (error) {
-      lastError = error.message;
-      console.error(`Attempt ${attempts + 1} Failed:`, lastError);
-      rotateKey();
-    }
-  }
-
-  return res.status(500).json({ 
-    error: `AI processing failed. Last Error: ${lastError}` 
-  });
-});
-
-// ===============================
-// Vertex AI (Google Antigravity)
-// ===============================
-let vertexAI = null;
-try {
-    const { VertexAI } = require('@google-cloud/vertexai');
-    if (process.env.GOOGLE_CLOUD_PROJECT) {
-        vertexAI = new VertexAI({
-            project: process.env.GOOGLE_CLOUD_PROJECT,
-            location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'
-        });
-        console.log(`[Antigravity] Vertex AI ready → ${process.env.GOOGLE_CLOUD_PROJECT} / ${process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'}`);
-    } else {
-        console.warn('[Antigravity] GOOGLE_CLOUD_PROJECT not set — Antigravity mode disabled.');
-    }
-} catch (err) {
-    console.warn('[Antigravity] SDK unavailable:', err.message);
-}
-
-async function runVertexAgent(agentName, systemInstruction, userPrompt) {
-    const startTime = Date.now();
-
-    const model = vertexAI.getGenerativeModel({
-        model: 'gemini-flash-lite-latest',
-        systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
-        generationConfig: { temperature: 0.1, maxOutputTokens: 1024, responseMimeType: 'application/json' }
-    });
-
-    const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }]
-    });
-
-    const endTime = Date.now();
-    const rawText = result.response.candidates[0].content.parts[0].text;
-
-    let parsed;
-    try {
-        parsed = JSON.parse(rawText);
-    } catch {
-        const block = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (block) { try { parsed = JSON.parse(block[1]); } catch {} }
-        if (!parsed) {
-            const a = rawText.indexOf('{'), b = rawText.lastIndexOf('}');
-            if (a !== -1 && b !== -1) { try { parsed = JSON.parse(rawText.substring(a, b + 1)); } catch {} }
-        }
-        if (!parsed) parsed = { raw_response: rawText.substring(0, 500) };
-    }
-
-    const outputStr = JSON.stringify(parsed);
-    return {
-        agent_name: agentName,
-        start_time: new Date(startTime).toISOString(),
-        end_time: new Date(endTime).toISOString(),
-        duration_ms: endTime - startTime,
-        input_summary: userPrompt.substring(0, 300) + (userPrompt.length > 300 ? '…' : ''),
-        output_summary: outputStr.substring(0, 300) + (outputStr.length > 300 ? '…' : ''),
-        output: parsed
-    };
-}
-
-function buildDisplayText(insight, impact, actions) {
-    const lines = [];
-    if (insight?.primary_insight)      lines.push(`🔍 **Insight:** ${insight.primary_insight}`);
-    if (insight?.severity)             lines.push(`⚠️ **Severity:** ${insight.severity} | Confidence: ${insight.confidence_score}%`);
-    if (insight?.trend_direction)      lines.push(`📈 **Trend:** ${insight.trend_direction}`);
-    if (impact?.immediate_impact)      lines.push(`💥 **Immediate Impact:** ${impact.immediate_impact}`);
-    if (impact?.opportunity_or_threat) lines.push(`🎯 **Assessment:** ${impact.opportunity_or_threat}`);
-    if (actions?.overall_recommendation) lines.push(`✅ **Recommendation:** ${actions.overall_recommendation}`);
-    return lines.join('\n\n') || 'Analysis complete.';
-}
-
-// Antigravity Status
-app.get('/api/antigravity-status', (req, res) => {
-    res.json({
-        configured: !!vertexAI,
-        project: process.env.GOOGLE_CLOUD_PROJECT || null,
-        location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1',
-        model: 'gemini-flash-lite-latest'
-    });
-});
-
-// ===============================
-// POST /api/antigravity-analyze
-// Google Antigravity 5-Agent Pipeline
-// ===============================
-app.post('/api/antigravity-analyze', async (req, res) => {
     const { message, image } = req.body;
-
-    if (!message && !image) {
-        return res.status(400).json({ error: 'Message or image required.' });
+    if (!message && !image) return res.status(400).json({ error: 'Message or image required.' });
+    if (message?.toLowerCase() === '___clear_history___') {
+        chatHistory = [];
+        return res.json({ reply: 'History cleared.' });
     }
-    if (!vertexAI) {
-        return res.status(503).json({
-            error: 'Google Antigravity (Vertex AI) not configured. Add GOOGLE_CLOUD_PROJECT to .env and run: gcloud auth application-default login',
-            fallback_available: true
-        });
-    }
+    if (!apiKeys.length) return res.status(500).json({ error: 'No API keys configured.' });
 
-    const pipelineId = randomUUID();
-    const pipelineStart = Date.now();
-    const agentTraces = [];
+    let lastError = '';
+    for (let i = 0; i < apiKeys.length; i++) {
+        try {
+            const genAI = new GoogleGenerativeAI(currentKey());
+            const model = genAI.getGenerativeModel({
+                model: 'gemini-flash-lite-latest',
+                systemInstruction: SYSTEM_PROMPT
+            });
+            const chat = model.startChat({
+                history: chatHistory,
+                generationConfig: { maxOutputTokens: 2048, temperature: 0.1, responseMimeType: 'application/json' }
+            });
 
-    const dataContext = [
-        `=== INVENTORY DATA (CSV) ===\n${inventoryData}`,
-        `=== MARKET NEWS (JSON) ===\n${newsData}`,
-        `=== LIVE FEED (JSON) ===\n${feedData}`,
-        `=== FINANCIAL REPORT (JSON) ===\n${reportData}`,
-        `=== FORECAST TABLE (JSON) ===\n${forecastData}`
-    ].join('\n\n');
-
-    const userInput = message || '[Image analysis request]';
-
-    try {
-        // ── Agent 1: IngestionAgent ──────────────────────────────────
-        const agent1 = await runVertexAgent(
-            'IngestionAgent',
-            `You are the IngestionAgent in the Google Antigravity multi-agent pipeline for AI Financial Guardian — a Pakistani financial safety system.
-Parse and extract structured signals from raw user input and the provided data sources.
-Return ONLY valid JSON with this exact structure:
-{
-  "document_type": "fraud_report|market_signal|inventory_query|financial_inquiry|scam_alert|general",
-  "entities": ["named entities: people, companies, products, locations"],
-  "key_signals": ["most important signals or keywords"],
-  "amounts": ["monetary values or quantities found"],
-  "dates": ["dates or time references found"],
-  "language": "detected language",
-  "urgency": "Critical|High|Medium|Low"
-}`,
-            `USER INPUT: "${userInput}"\n\nDATA SOURCES:\n${dataContext}`
-        );
-        agentTraces.push(agent1);
-
-        // ── Agent 2: InsightAgent ────────────────────────────────────
-        const agent2 = await runVertexAgent(
-            'InsightAgent',
-            `You are the InsightAgent in the Google Antigravity multi-agent pipeline.
-Generate high-quality financial intelligence insights for Pakistani users based on ingested signals.
-Cross-reference signals with known Pakistani scam patterns, market data, and inventory levels.
-Return ONLY valid JSON with this exact structure:
-{
-  "primary_insight": "The single most important insight in 1-2 sentences",
-  "supporting_details": ["2-3 points supporting the primary insight"],
-  "trend_direction": "Bullish|Bearish|Neutral|Volatile",
-  "severity": "Critical|High|Medium|Low",
-  "confidence_score": 0,
-  "scam_probability": 0,
-  "contradictions_detected": ["any conflicting signals found across data sources"]
-}`,
-            `INGESTION OUTPUT:\n${JSON.stringify(agent1.output, null, 2)}\n\nORIGINAL INPUT: "${userInput}"`
-        );
-        agentTraces.push(agent2);
-
-        // ── Agent 3: ImpactAnalystAgent ──────────────────────────────
-        const agent3 = await runVertexAgent(
-            'ImpactAnalystAgent',
-            `You are the ImpactAnalystAgent in the Google Antigravity multi-agent pipeline.
-Assess real-world consequences of the detected insight specifically for Pakistani users, businesses, and the economy.
-Return ONLY valid JSON with this exact structure:
-{
-  "immediate_impact": "Impact in the next 24-48 hours",
-  "medium_term_impact": "Impact over the next 1-4 weeks",
-  "affected_sectors": ["sectors affected: Retail, Banking, Logistics, Consumers, Government, etc."],
-  "risk_level": "Critical|High|Medium|Low",
-  "opportunity_or_threat": "Opportunity|Threat|Mixed",
-  "financial_exposure_estimate": "estimated PKR amount at risk or potential gain",
-  "population_affected": "description of who in Pakistan is affected"
-}`,
-            `INSIGHT:\n${JSON.stringify(agent2.output, null, 2)}\n\nINGESTION SIGNALS:\n${JSON.stringify(agent1.output, null, 2)}`
-        );
-        agentTraces.push(agent3);
-
-        // ── Agent 4: ActionRecommenderAgent ─────────────────────────
-        const agent4 = await runVertexAgent(
-            'ActionRecommenderAgent',
-            `You are the ActionRecommenderAgent in the Google Antigravity multi-agent pipeline.
-Generate 3-5 prioritized, concrete actions for Pakistani users based on the impact analysis.
-Each action must be realistic and actionable within Pakistan's financial and regulatory context.
-Return ONLY valid JSON with this exact structure:
-{
-  "actions": [
-    {
-      "id": "unique_snake_case_id",
-      "title": "Short action title",
-      "rationale": "Why this action is needed",
-      "expected_outcome": "What will happen if taken",
-      "priority": "Critical|High|Medium|Low",
-      "timeframe": "Immediate|24h|1 week|1 month",
-      "type": "alert|block|report|restock|reroute|notify|investigate"
-    }
-  ],
-  "top_action_id": "id of the single most critical action",
-  "overall_recommendation": "1-2 sentence summary of recommended course of action"
-}`,
-            `IMPACT ANALYSIS:\n${JSON.stringify(agent3.output, null, 2)}\n\nINSIGHT:\n${JSON.stringify(agent2.output, null, 2)}`
-        );
-        agentTraces.push(agent4);
-
-        // ── Agent 5: ExecutionAgent ──────────────────────────────────
-        const topActionId = agent4.output?.top_action_id;
-        const topAction = agent4.output?.actions?.find(a => a.id === topActionId) || agent4.output?.actions?.[0];
-
-        const agent5 = await runVertexAgent(
-            'ExecutionAgent',
-            `You are the ExecutionAgent in the Google Antigravity multi-agent pipeline.
-Simulate the execution of the top recommended action and produce a complete execution report.
-Return ONLY valid JSON with this exact structure:
-{
-  "execution_log": [
-    "Step 1: [specific action taken]",
-    "Step 2: [specific action taken]",
-    "Step 3: [specific action taken]",
-    "Step 4: [verification check]",
-    "Step 5: [completion and status]"
-  ],
-  "email_draft": "A professional Urdu/English email draft relevant to the action (FIA complaint, supplier notice, bank alert, or other authority)",
-  "system_state_before": {
-    "status": "pre-execution system state description",
-    "risk_level": "string",
-    "inventory_status": "string",
-    "financial_exposure": "string"
-  },
-  "system_state_after": {
-    "status": "post-execution system state description",
-    "risk_level": "string",
-    "inventory_status": "string",
-    "financial_exposure": "string"
-  },
-  "artifacts_created": ["list of documents, reports, or records created"],
-  "execution_status": "Success|Partial|Failed",
-  "next_steps": ["2-3 recommended follow-up actions"]
-}`,
-            `TOP ACTION TO EXECUTE:\n${JSON.stringify(topAction, null, 2)}\n\nCONTEXT:\nInsight: ${agent2.output?.primary_insight || ''}\nImpact: ${agent3.output?.immediate_impact || ''}\nScam Risk: ${agent2.output?.scam_probability ?? 0}%`
-        );
-        agentTraces.push(agent5);
-
-        const displayText = buildDisplayText(agent2.output, agent3.output, agent4.output);
-
-        return res.json({
-            pipeline_id: pipelineId,
-            timestamp: new Date().toISOString(),
-            total_duration_ms: Date.now() - pipelineStart,
-            agents: agentTraces,
-            final_output: {
-                display_text: displayText,
-                insight: agent2.output?.primary_insight || '',
-                severity: agent2.output?.severity || 'Medium',
-                scam_score: agent2.output?.scam_probability ?? 0,
-                trend: agent2.output?.trend_direction || 'Neutral',
-                confidence: agent2.output?.confidence_score ?? 0,
-                impact: agent3.output?.immediate_impact || '',
-                affected_sectors: agent3.output?.affected_sectors || [],
-                actions: agent4.output?.actions || [],
-                top_action: topAction || null,
-                execution: agent5.output
+            let result;
+            if (image) {
+                const m = image.match(/^data:(.+);base64,(.+)$/);
+                if (!m) throw new Error('Invalid image format.');
+                result = await chat.sendMessage([
+                    { inlineData: { data: m[2], mimeType: m[1] } },
+                    message || 'Analyze this financial content.'
+                ]);
+            } else {
+                result = await chat.sendMessage(message);
             }
-        });
 
-    } catch (error) {
-        console.error('[Antigravity] Pipeline error:', error.message);
-        return res.status(500).json({
-            error: `Antigravity pipeline failed: ${error.message}`,
-            pipeline_id: pipelineId,
-            total_duration_ms: Date.now() - pipelineStart,
-            partial_traces: agentTraces,
-            fallback_available: true
-        });
+            const rawText = result.response.text();
+            let parsed = parseJSON(rawText);
+            if (!parsed) parsed = { display_text: rawText.substring(0, 500), scam_score: 0, recommended_actions: [] };
+
+            chatHistory.push({ role: 'user',  parts: [{ text: message || '[Image]' }] });
+            chatHistory.push({ role: 'model', parts: [{ text: JSON.stringify(parsed) }] });
+            if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+
+            parsed.reply = parsed.display_text;
+            return res.json(parsed);
+        } catch (err) {
+            lastError = err.message;
+            rotateKey();
+        }
     }
+    res.status(500).json({ error: `AI failed. ${lastError}` });
 });
 
-// ===============================
-// Gemini 5-Agent Pipeline
-// ===============================
-const PIPELINE_AGENTS = {
-    IngestionAgent: `You are a Financial Content Ingestion Agent. Extract from the input: document_type, entities (companies/people/places), key_amounts (all numbers with context), dates, and core_topic in one sentence.
-Return ONLY valid JSON with this exact structure:
-{"document_type":"string","entities":["array of strings"],"key_amounts":[{"amount":"string","context":"string"}],"dates":["array of strings"],"core_topic":"string"}`,
+// ════════════════════════════════════════════════════
+// JSON Parse Helper
+// ════════════════════════════════════════════════════
+function parseJSON(text) {
+    try { return JSON.parse(text); } catch {}
+    const block = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (block) { try { return JSON.parse(block[1]); } catch {} }
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if (a !== -1 && b !== -1) { try { return JSON.parse(text.substring(a, b + 1)); } catch {} }
+    return null;
+}
+
+// ════════════════════════════════════════════════════
+// ORCHESTRATOR — classifies input & builds agent plan
+// ════════════════════════════════════════════════════
+class PipelineOrchestrator {
+    constructor() {
+        this.log = [];
+    }
+
+    // Step 1: classify input WITHOUT any API call (pure regex + keywords)
+    classify(input) {
+        const t = input.toLowerCase();
+
+        const SCAM_WORDS  = ['lottery','prize','winner','otp','processing fee','bisp','fia','police',
+                             'arrest','blocked','suspicious','fraud','scam','fake','click this link',
+                             'verify your account','lagi hai','mubarak ho','jeet','lucky draw',
+                             'winning','congratulations','paisa','easy money','guarantee'];
+        const URGENT_WORDS = ['critical','emergency','urgent','immediately','crash','collapse',
+                              'breach','hack','stolen','lost all'];
+        const BUSINESS_WORDS = ['inventory','stock','supply','shipment','restock','warehouse',
+                                'sku','production','delivery','vendor','supplier'];
+        const MARKET_WORDS = ['sbp','interest rate','dollar','inflation','psx','karachi stock',
+                              'budget','imf','gdp','rupee','exchange rate','rate cut','policy'];
+
+        const scamHits    = SCAM_WORDS.filter(k => t.includes(k)).length;
+        const isUrgent    = URGENT_WORDS.some(k => t.includes(k));
+        const isBusiness  = BUSINESS_WORDS.some(k => t.includes(k));
+        const isMarket    = MARKET_WORDS.some(k => t.includes(k));
+
+        let type, urgency, fastTrack, skipAgents, reason;
+
+        if (scamHits >= 2) {
+            type = 'scam'; urgency = 'Critical'; fastTrack = true;
+            skipAgents = ['ImpactAnalystAgent', 'ActionRecommenderAgent'];
+            reason = `Scam keywords detected (${scamHits} hits) → fast-track to execution`;
+        } else if (scamHits === 1) {
+            type = 'scam_possible'; urgency = 'High'; fastTrack = false;
+            skipAgents = [];
+            reason = 'Possible scam — running full pipeline for thorough analysis';
+        } else if (isUrgent) {
+            type = 'urgent'; urgency = 'Critical'; fastTrack = false;
+            skipAgents = [];
+            reason = 'Urgent situation — full pipeline with priority execution';
+        } else if (isBusiness) {
+            type = 'business'; urgency = 'Medium'; fastTrack = false;
+            skipAgents = [];
+            reason = 'Business/inventory query — full pipeline';
+        } else if (isMarket) {
+            type = 'market'; urgency = 'Medium'; fastTrack = false;
+            skipAgents = [];
+            reason = 'Market analysis query — full pipeline';
+        } else {
+            type = 'general'; urgency = 'Low'; fastTrack = false;
+            skipAgents = [];
+            reason = 'General financial query — standard pipeline';
+        }
+
+        const decision = { type, urgency, fastTrack, skipAgents, reason, scamHits };
+        this.log.push({ step: 'classify', timestamp: new Date().toISOString(), ...decision });
+        return decision;
+    }
+
+    // Step 2: build execution plan based on classification
+    buildPlan(classification) {
+        const ALL_AGENTS = [
+            'IngestionAgent',
+            'InsightAgent',
+            'ImpactAnalystAgent',
+            'ActionRecommenderAgent',
+            'ExecutionAgent'
+        ];
+
+        const agents = ALL_AGENTS.filter(a => !classification.skipAgents.includes(a));
+        const plan = { agents, skipped: classification.skipAgents, totalSteps: agents.length };
+        this.log.push({ step: 'plan', timestamp: new Date().toISOString(), ...plan });
+        return plan;
+    }
+
+    // Step 3: decide if we should continue after a failed agent
+    shouldContinue(agentName, result, classification) {
+        if (result.status === 'completed') return true;
+
+        // Critical agents — abort pipeline if they fail
+        const CRITICAL = ['IngestionAgent', 'InsightAgent'];
+        if (CRITICAL.includes(agentName)) {
+            this.log.push({ step: 'abort', reason: `Critical agent ${agentName} failed`, timestamp: new Date().toISOString() });
+            return false;
+        }
+
+        // Non-critical — continue with partial data and log
+        this.log.push({ step: 'continue_partial', reason: `${agentName} failed but is non-critical`, timestamp: new Date().toISOString() });
+        return true;
+    }
+
+    // Step 4: adjust prompt for scam fast-track ExecutionAgent
+    adjustPromptForFastTrack(agentName, classification, context) {
+        if (classification.fastTrack && agentName === 'ExecutionAgent') {
+            return `SCAM FAST-TRACK MODE. Skip normal execution steps.
+Focus ONLY on immediate user protection.
+${context}
+Generate: FIA complaint draft, bank alert message, and 3 immediate safety steps.`;
+        }
+        return context;
+    }
+}
+
+// ════════════════════════════════════════════════════
+// Agent Definitions (system prompts per agent)
+// ════════════════════════════════════════════════════
+const AGENT_PROMPTS = {
+    IngestionAgent: `You are a Financial Content Ingestion Agent for Pakistan.
+Extract structured signals from user input and data sources.
+Return ONLY valid JSON:
+{"document_type":"fraud_report|market_signal|inventory_query|financial_inquiry|scam_alert|general","entities":["strings"],"key_amounts":[{"amount":"","context":""}],"dates":["strings"],"core_topic":"string","urgency":"Critical|High|Medium|Low"}`,
 
     InsightAgent: `You are a Financial Insight Agent specialized in Pakistan economy.
-Given extracted data, identify the PRIMARY insight (not a summary — the real signal that matters most).
-Return ONLY valid JSON with this exact structure:
-{"primary_insight":"string","trend_direction":"Bullish|Bearish|Neutral|Volatile","severity":"Critical|High|Medium|Low","confidence_score":0,"affected_parties":["array of strings"]}`,
+Identify the PRIMARY signal that matters most — not a summary.
+Return ONLY valid JSON:
+{"primary_insight":"string","supporting_details":["strings"],"trend_direction":"Bullish|Bearish|Neutral|Volatile","severity":"Critical|High|Medium|Low","confidence_score":0,"scam_probability":0,"affected_parties":["strings"],"contradictions_detected":["strings"]}`,
 
     ImpactAnalystAgent: `You are a Financial Impact Analyst for Pakistan market.
-Given the insight, analyze real consequences for Pakistani businesses, consumers, and markets.
-Return ONLY valid JSON with this exact structure:
-{"immediate_impact":"string","medium_term_impact":"string","affected_sectors":["array"],"risk_level":"Critical|High|Medium|Low","opportunity_or_threat":"Opportunity|Threat|Mixed","pkr_impact":"string","psx_impact":"string"}`,
+Assess real-world consequences for Pakistani businesses, consumers, and economy.
+Return ONLY valid JSON:
+{"immediate_impact":"string","medium_term_impact":"string","affected_sectors":["strings"],"risk_level":"Critical|High|Medium|Low","opportunity_or_threat":"Opportunity|Threat|Mixed","pkr_impact":"string","psx_impact":"string","population_affected":"string"}`,
 
-    ActionRecommenderAgent: `You are a Financial Action Strategist.
-Generate exactly 3 actions: one immediate (24h), one short-term (1 week), one strategic (1 month).
-Return ONLY valid JSON with this exact structure:
-{"actions":[{"title":"string","rationale":"string","expected_outcome":"string","priority":"Critical|High|Medium","timeframe":"24h|1 week|1 month"}]}`,
+    ActionRecommenderAgent: `You are a Financial Action Strategist for Pakistan.
+Generate exactly 3 prioritized actions: immediate (24h), short-term (1 week), strategic (1 month).
+Return ONLY valid JSON:
+{"actions":[{"title":"","rationale":"","expected_outcome":"","priority":"Critical|High|Medium","timeframe":"24h|1 week|1 month","type":"alert|block|report|restock|notify|investigate"}],"top_action_id":"0","overall_recommendation":"string"}`,
 
-    ExecutionAgent: `You are an Action Execution Agent. Simulate executing the top priority action.
-Generate a realistic email draft to stakeholders and show system state change.
-Return ONLY valid JSON with this exact structure:
-{"execution_log":[{"timestamp":"ISO string","step":"string","status":"completed|in_progress"}],"email_draft":{"to":"string","subject":"string","body":"string"},"system_state_before":{"portfolio_risk_score":0,"alert_status":"string","pending_actions":0},"system_state_after":{"portfolio_risk_score":0,"alert_status":"string","pending_actions":0},"artifacts_created":["array of strings"]}`
+    ExecutionAgent: `You are an Action Execution Agent for Pakistan financial safety.
+Simulate executing the top priority action with full traceability.
+Return ONLY valid JSON:
+{"execution_log":[{"timestamp":"ISO","step":"string","status":"completed|in_progress"}],"email_draft":{"to":"string","subject":"string","body":"string"},"system_state_before":{"portfolio_risk_score":0,"alert_status":"string","pending_actions":0},"system_state_after":{"portfolio_risk_score":0,"alert_status":"string","pending_actions":0},"artifacts_created":["strings"],"execution_status":"Success|Partial|Failed","next_steps":["strings"]}`
 };
 
-async function runPipelineAgent(agentName, systemPrompt, userInput) {
+// ════════════════════════════════════════════════════
+// Run single agent with retry (max 2 attempts)
+// ════════════════════════════════════════════════════
+async function runAgent(agentName, agentInput, retries = 2) {
     const startTime = Date.now();
-    const startTimestamp = new Date(startTime).toISOString();
 
-    try {
-        const key = apiKeys[currentKeyIndex];
-        const genAI = new GoogleGenerativeAI(key);
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-flash-lite-latest',
-            systemInstruction: systemPrompt,
-            generationConfig: { temperature: 0.1, maxOutputTokens: 800, responseMimeType: 'application/json' }
-        });
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const genAI = new GoogleGenerativeAI(currentKey());
+            const model = genAI.getGenerativeModel({
+                model: 'gemini-flash-lite-latest',
+                systemInstruction: AGENT_PROMPTS[agentName],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 900, responseMimeType: 'application/json' }
+            });
 
-        const result = await model.generateContent(userInput);
-        const rawText = result.response.text();
+            const result  = await model.generateContent(agentInput);
+            const rawText = result.response.text();
+            const parsed  = parseJSON(rawText) || { raw_response: rawText.substring(0, 400) };
+            const endTime = Date.now();
 
-        let parsed;
-        try { parsed = JSON.parse(rawText); } catch {
-            const block = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (block) { try { parsed = JSON.parse(block[1]); } catch {} }
-            if (!parsed) {
-                const a = rawText.indexOf('{'), b = rawText.lastIndexOf('}');
-                if (a !== -1 && b !== -1) { try { parsed = JSON.parse(rawText.substring(a, b + 1)); } catch {} }
+            return {
+                agent_name:      agentName,
+                attempt,
+                start_timestamp: new Date(startTime).toISOString(),
+                end_timestamp:   new Date(endTime).toISOString(),
+                duration_ms:     endTime - startTime,
+                status:          'completed',
+                output:          parsed
+            };
+        } catch (err) {
+            rotateKey();
+            if (attempt === retries) {
+                const endTime = Date.now();
+                return {
+                    agent_name:      agentName,
+                    attempt,
+                    start_timestamp: new Date(startTime).toISOString(),
+                    end_timestamp:   new Date(endTime).toISOString(),
+                    duration_ms:     endTime - startTime,
+                    status:          'failed',
+                    error:           err.message,
+                    output:          null
+                };
             }
-            if (!parsed) parsed = { raw_response: rawText.substring(0, 400) };
+            await new Promise(r => setTimeout(r, 400));
         }
-
-        const endTime = Date.now();
-        return { agent_name: agentName, start_timestamp: startTimestamp, end_timestamp: new Date(endTime).toISOString(), duration_ms: endTime - startTime, status: 'completed', output: parsed };
-    } catch (error) {
-        rotateKey();
-        const endTime = Date.now();
-        return { agent_name: agentName, start_timestamp: startTimestamp, end_timestamp: new Date(endTime).toISOString(), duration_ms: endTime - startTime, status: 'failed', error: error.message, output: null };
     }
 }
 
-// ===============================
-// POST /api/pipeline — Real 5-Agent Pipeline (SSE streaming)
-// ===============================
+// ════════════════════════════════════════════════════
+// POST /api/pipeline — Orchestrator-driven SSE pipeline
+// ════════════════════════════════════════════════════
+const DATA_CTX = [
+    `=== MARKET NEWS ===\n${newsData}`,
+    `=== FINANCIAL REPORT ===\n${reportData}`,
+    `=== INVENTORY (first 8 rows) ===\n${inventoryData.split('\n').slice(0, 8).join('\n')}`,
+    `=== LIVE FEED ===\n${feedData}`
+].join('\n\n');
+
 app.post('/api/pipeline', async (req, res) => {
     const { message, image } = req.body;
     if (!message && !image) return res.status(400).json({ error: 'Message required.' });
-    if (apiKeys.length === 0) return res.status(500).json({ error: 'No API keys configured.' });
+    if (!apiKeys.length)    return res.status(500).json({ error: 'No API keys configured.' });
 
+    // SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -605,72 +373,140 @@ app.post('/api/pipeline', async (req, res) => {
         try { res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`); } catch {}
     };
 
-    const pipelineId = randomUUID();
+    const pipelineId    = randomUUID();
     const pipelineStart = Date.now();
-    const agentTraces = [];
-    const results = {};
-    const userInput = message || '[Image analysis request]';
-    const dataCtx = `Market context:\n${newsData}\n\nFinancial data:\n${reportData}\n\nInventory:\n${inventoryData.split('\n').slice(0,5).join('\n')}`;
+    const agentTraces   = [];
+    const results       = {};
+    const userInput     = message || '[Image analysis request]';
 
-    emit('pipeline_start', { pipeline_id: pipelineId, timestamp: new Date().toISOString() });
+    // ── Step 1: Orchestrator classifies & plans ──────────────
+    const orchestrator   = new PipelineOrchestrator();
+    const classification = orchestrator.classify(userInput);
+    const plan           = orchestrator.buildPlan(classification);
 
+    emit('pipeline_start', {
+        pipeline_id:    pipelineId,
+        timestamp:      new Date().toISOString(),
+        classification,
+        plan,
+        orchestrator_log: orchestrator.log
+    });
+
+    // Emit skipped agents immediately
+    plan.skipped.forEach((name, i) => {
+        const idx = ['IngestionAgent','InsightAgent','ImpactAnalystAgent','ActionRecommenderAgent','ExecutionAgent'].indexOf(name);
+        emit('agent_skipped', { agent_name: name, index: idx, reason: classification.reason });
+    });
+
+    // ── Step 2: Run planned agents in sequence ───────────────
     try {
-        // ── Agent 1 ────────────────────────────────────────────
-        emit('agent_start', { agent_name: 'IngestionAgent', index: 0 });
-        const a1 = await runPipelineAgent('IngestionAgent', PIPELINE_AGENTS.IngestionAgent,
-            `User input: "${userInput}"\n\n${dataCtx}`);
-        agentTraces.push(a1); results.ingestion = a1.output;
-        emit('agent_complete', { agent_name: 'IngestionAgent', index: 0, trace: a1 });
-        if (a1.status === 'failed') throw new Error('IngestionAgent: ' + a1.error);
+        for (const agentName of plan.agents) {
+            const agentIndex = ['IngestionAgent','InsightAgent','ImpactAnalystAgent','ActionRecommenderAgent','ExecutionAgent'].indexOf(agentName);
 
-        // ── Agent 2 ────────────────────────────────────────────
-        emit('agent_start', { agent_name: 'InsightAgent', index: 1 });
-        const a2 = await runPipelineAgent('InsightAgent', PIPELINE_AGENTS.InsightAgent,
-            `Ingested data:\n${JSON.stringify(a1.output, null, 2)}\n\nOriginal input: "${userInput}"`);
-        agentTraces.push(a2); results.insight = a2.output;
-        emit('agent_complete', { agent_name: 'InsightAgent', index: 1, trace: a2 });
+            emit('agent_start', { agent_name: agentName, index: agentIndex });
 
-        // ── Agent 3 ────────────────────────────────────────────
-        emit('agent_start', { agent_name: 'ImpactAnalystAgent', index: 2 });
-        const a3 = await runPipelineAgent('ImpactAnalystAgent', PIPELINE_AGENTS.ImpactAnalystAgent,
-            `Insight:\n${JSON.stringify(a2.output, null, 2)}`);
-        agentTraces.push(a3); results.impact = a3.output;
-        emit('agent_complete', { agent_name: 'ImpactAnalystAgent', index: 2, trace: a3 });
+            // Build agent-specific input, then let orchestrator adjust if needed
+            let agentInput = buildAgentInput(agentName, userInput, results, classification);
+            agentInput = orchestrator.adjustPromptForFastTrack(agentName, classification, agentInput);
 
-        // ── Agent 4 ────────────────────────────────────────────
-        emit('agent_start', { agent_name: 'ActionRecommenderAgent', index: 3 });
-        const a4 = await runPipelineAgent('ActionRecommenderAgent', PIPELINE_AGENTS.ActionRecommenderAgent,
-            `Impact analysis:\n${JSON.stringify(a3.output, null, 2)}\nInsight: ${a2.output?.primary_insight || ''}`);
-        agentTraces.push(a4); results.actions = a4.output;
-        emit('agent_complete', { agent_name: 'ActionRecommenderAgent', index: 3, trace: a4 });
+            const trace = await runAgent(agentName, agentInput);
 
-        // ── Agent 5 ────────────────────────────────────────────
-        emit('agent_start', { agent_name: 'ExecutionAgent', index: 4 });
-        const topAction = a4.output?.actions?.[0] || {};
-        const a5 = await runPipelineAgent('ExecutionAgent', PIPELINE_AGENTS.ExecutionAgent,
-            `Top action:\n${JSON.stringify(topAction, null, 2)}\n\nContext — Insight: ${a2.output?.primary_insight || ''} | Risk: ${a3.output?.risk_level || ''} | Impact: ${a3.output?.immediate_impact || ''}`);
-        agentTraces.push(a5); results.execution = a5.output;
-        emit('agent_complete', { agent_name: 'ExecutionAgent', index: 4, trace: a5 });
+            agentTraces.push(trace);
+            results[agentName] = trace.output;
+
+            // Orchestrator decides whether to continue after failure
+            if (!orchestrator.shouldContinue(agentName, trace, classification)) {
+                emit('agent_complete', { agent_name: agentName, index: agentIndex, trace });
+                emit('pipeline_error', {
+                    pipeline_id:      pipelineId,
+                    error:            `Critical agent ${agentName} failed after retries`,
+                    agents:           agentTraces,
+                    orchestrator_log: orchestrator.log
+                });
+                return res.end();
+            }
+
+            emit('agent_complete', { agent_name: agentName, index: agentIndex, trace });
+        }
+
+        // ── Step 3: Assemble final output ────────────────────
+        const insight  = results['InsightAgent']           || {};
+        const impact   = results['ImpactAnalystAgent']     || {};
+        const actions  = results['ActionRecommenderAgent'] || {};
+        const exec     = results['ExecutionAgent']         || {};
 
         emit('pipeline_complete', {
-            pipeline_id: pipelineId,
+            pipeline_id:      pipelineId,
             total_duration_ms: Date.now() - pipelineStart,
-            timestamp: new Date().toISOString(),
-            agents: agentTraces,
-            results
+            timestamp:        new Date().toISOString(),
+            classification,
+            plan,
+            orchestrator_log: orchestrator.log,
+            agents:           agentTraces,
+            results: {
+                ingestion: results['IngestionAgent'] || null,
+                insight:   insight,
+                impact:    impact,
+                actions:   actions,
+                execution: exec
+            }
         });
+
     } catch (err) {
-        console.error('[Pipeline] Error:', err.message);
-        emit('pipeline_error', { pipeline_id: pipelineId, error: err.message, agents: agentTraces, partial_results: results });
+        console.error('[Pipeline] Unexpected error:', err.message);
+        emit('pipeline_error', {
+            pipeline_id:      pipelineId,
+            error:            err.message,
+            agents:           agentTraces,
+            partial_results:  results,
+            orchestrator_log: orchestrator.log
+        });
     }
 
     res.end();
 });
 
-// For local development
+// Build the input string for each agent based on prior outputs
+function buildAgentInput(agentName, userInput, results, classification) {
+    switch (agentName) {
+        case 'IngestionAgent':
+            return `USER INPUT: "${userInput}"\n\n${DATA_CTX}`;
+
+        case 'InsightAgent':
+            return `INGESTION OUTPUT:\n${JSON.stringify(results['IngestionAgent'] || {}, null, 2)}\n\nORIGINAL INPUT: "${userInput}"`;
+
+        case 'ImpactAnalystAgent':
+            return `INSIGHT:\n${JSON.stringify(results['InsightAgent'] || {}, null, 2)}\n\nINGESTION SIGNALS:\n${JSON.stringify(results['IngestionAgent'] || {}, null, 2)}`;
+
+        case 'ActionRecommenderAgent':
+            return `IMPACT ANALYSIS:\n${JSON.stringify(results['ImpactAnalystAgent'] || {}, null, 2)}\n\nINSIGHT: ${results['InsightAgent']?.primary_insight || ''}\nSEVERITY: ${results['InsightAgent']?.severity || ''}`;
+
+        case 'ExecutionAgent': {
+            const topAction = results['ActionRecommenderAgent']?.actions?.[0] || {};
+            return `TOP ACTION:\n${JSON.stringify(topAction, null, 2)}\n\nCONTEXT:\nInsight: ${results['InsightAgent']?.primary_insight || ''}\nImpact: ${results['ImpactAnalystAgent']?.immediate_impact || ''}\nScam Risk: ${results['InsightAgent']?.scam_probability ?? 0}%\nUrgency: ${classification.urgency}`;
+        }
+        default:
+            return `USER INPUT: "${userInput}"`;
+    }
+}
+
+// ════════════════════════════════════════════════════
+// Antigravity status (for UI mode toggle)
+// ════════════════════════════════════════════════════
+app.get('/api/antigravity-status', (_req, res) => {
+    res.json({
+        configured: false,
+        message:    'Running on Gemini API with Orchestrator pipeline',
+        model:      'gemini-flash-lite-latest'
+    });
+});
+
+// ════════════════════════════════════════════════════
+// Start server (local dev only)
+// ════════════════════════════════════════════════════
 if (process.env.NODE_ENV !== 'production') {
     const port = process.env.PORT || 3000;
-    app.listen(port, () => console.log(`Local server running: http://localhost:${port}`));
+    app.listen(port, () => console.log(`\n  Local: http://localhost:${port}\n`));
 }
 
 module.exports = app;
